@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Engine — Interactive Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0F1626; --ink-2:#171F33; --paper:#F7F8FB; --card:#FFFFFF;
+  --line:#DFE3EC; --text:#1B2130; --text-dim:#5B6478;
+  --teal:#1C8C7C; --teal-soft:#E4F3F0; --amber:#E8A33D; --amber-soft:#FCF0DC;
+  --red:#C4534A; --red-soft:#FBEAE8; --blue:#3D74C9; --blue-soft:#E8F0FB;
+  --radius:10px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{font-family:'Inter',sans-serif; background:var(--paper); color:var(--text); overflow:hidden; height:100vh;}
+#app{display:flex; height:100vh; width:100vw;}
+
+/* ---------- Sidebar ---------- */
+#sidebar{width:236px; min-width:236px; background:linear-gradient(180deg,var(--ink) 0%, var(--ink-2) 100%); color:#EDEFF6; display:flex; flex-direction:column; padding:20px 16px;}
+.brand{display:flex; align-items:center; gap:10px; margin-bottom:18px; padding:0 6px;}
+.brand-mark{width:30px;height:30px;border-radius:8px; background:linear-gradient(135deg,var(--teal),var(--amber)); flex-shrink:0;}
+.brand-text{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px; letter-spacing:.2px; line-height:1.15;}
+.brand-sub{font-size:10.5px; color:#8F97AC; font-weight:500; letter-spacing:.3px;}
+
+.app-switch{display:flex; gap:4px; background:rgba(255,255,255,.06); padding:4px; border-radius:9px; margin-bottom:18px;}
+.app-switch button{flex:1; background:transparent; border:none; color:#9BA2B8; font-size:11px; font-weight:600; padding:8px 4px; border-radius:6px; cursor:pointer; font-family:'Inter',sans-serif;}
+.app-switch button.active{background:var(--card); color:var(--ink);}
+.app-switch button:hover:not(.active){color:#fff;}
+
+nav{display:flex; flex-direction:column; gap:3px; margin-top:2px;}
+.nav-item{display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:8px; cursor:pointer; font-size:13.5px; font-weight:500; color:#B7BDCE; transition:background .15s, color .15s; border:1px solid transparent;}
+.nav-item .dot{width:6px;height:6px;border-radius:50%; background:#454E67; flex-shrink:0;}
+.nav-item:hover{background:rgba(255,255,255,.05); color:#fff;}
+.nav-item.active{background:rgba(255,255,255,.08); color:#fff; border-color:rgba(255,255,255,.08);}
+.nav-item.active .dot{background:var(--amber);}
+.nav-num{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#6B7288; margin-right:2px;}
+.sidebar-foot{margin-top:auto; padding:12px 12px 4px; border-top:1px solid rgba(255,255,255,.08);}
+.sidebar-foot-label{font-size:10.5px; color:#727A90; line-height:1.5;}
+.tour-btn{margin-top:14px; width:100%; background:var(--amber); color:#22190A; border:none; padding:10px 12px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; font-family:'Inter',sans-serif; transition:filter .15s;}
+.tour-btn:hover{filter:brightness(1.06);}
+
+/* ---------- Main ---------- */
+#main{flex:1; display:flex; flex-direction:column; min-width:0;}
+#topbar{height:58px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; padding:0 26px; background:var(--card); flex-shrink:0;}
+.crumbs{font-size:12.5px; color:var(--text-dim); display:flex; align-items:center; gap:7px;}
+.crumbs b{color:var(--text); font-weight:600;}
+.env-badge{font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600; color:var(--teal); background:var(--teal-soft); border:1px solid #C8E6E0; padding:2px 7px; border-radius:5px; letter-spacing:.4px;}
+.top-right{display:flex; align-items:center; gap:14px;}
+.top-right .ghost{font-size:12.5px; color:var(--text-dim); font-weight:500; padding:7px 12px; border-radius:7px; cursor:pointer; border:1px solid var(--line); background:var(--card); text-decoration:none; display:inline-flex; align-items:center; gap:5px;}
+.top-right .ghost:hover{background:#F1F3F8;}
+
+#canvas{flex:1; overflow-y:auto; padding:26px 30px 10px;}
+.view{display:none; animation:fadein .25s ease;}
+.view.active{display:block;}
+@keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+
+.view-head{margin-bottom:20px;}
+.view-eyebrow{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--teal); letter-spacing:.6px; font-weight:600; margin-bottom:6px;}
+.view-title{font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; margin:0 0 6px;}
+.view-desc{font-size:13.5px; color:var(--text-dim); max-width:640px; line-height:1.55; margin:0;}
+
+.grid{display:grid; gap:16px;}
+.grid-2{grid-template-columns:1.1fr .9fr;}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px;}
+.card-title{font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-dim); margin:0 0 14px; display:flex; align-items:center; justify-content:space-between;}
+.card-title span.tag{font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:500; text-transform:none; color:var(--text-dim); letter-spacing:0;}
+
+.profile-head{display:flex; align-items:center; gap:14px; margin-bottom:16px;}
+.avatar{width:48px;height:48px;border-radius:50%; background:linear-gradient(135deg,var(--teal),#2FB09B); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; flex-shrink:0;}
+.profile-name{font-weight:700; font-size:15.5px;}
+.profile-id{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-dim);}
+.kv-list{display:flex; flex-direction:column; gap:9px; font-size:13px;}
+.kv-row{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed var(--line);}
+.kv-row:last-child{border-bottom:none;}
+.kv-label{color:var(--text-dim);}
+.kv-val{font-weight:600;}
+.pill{display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:600;}
+.pill.yes{background:var(--teal-soft); color:var(--teal);}
+.pill.no{background:#F1F2F6; color:#7B8296;}
+
+.tag-chip{display:inline-block; padding:4px 10px; border-radius:20px; font-size:11.5px; font-weight:600; margin:0 6px 6px 0;}
+.tag-chip.hv{background:var(--amber-soft); color:#96631A;}
+.tag-chip.re{background:var(--teal-soft); color:var(--teal);}
+.tag-chip.risk{background:var(--red-soft); color:var(--red);}
+
+.timeline{list-style:none; margin:0; padding:0;}
+.timeline li{position:relative; padding:0 0 16px 22px; font-size:13px; border-left:2px solid var(--line); margin-left:5px;}
+.timeline li:last-child{border-color:transparent; padding-bottom:0;}
+.timeline li::before{content:''; position:absolute; left:-6px; top:2px; width:10px; height:10px; border-radius:50%; background:var(--card); border:2px solid var(--teal);}
+.timeline .t-when{color:var(--text-dim); font-size:11.5px; font-family:'IBM Plex Mono',monospace;}
+
+.score-row{margin-bottom:14px;}
+.score-row:last-child{margin-bottom:0;}
+.score-label-row{display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;}
+.score-label-row b{font-weight:700; font-family:'IBM Plex Mono',monospace; font-size:13px;}
+.bar-track{height:8px; border-radius:6px; background:#EEF0F5; overflow:hidden;}
+.bar-fill{height:100%; border-radius:6px; background:linear-gradient(90deg,var(--teal),#2FB09B);}
+.bar-fill.amber{background:linear-gradient(90deg,#F0B65E,var(--amber));}
+.bar-fill.red{background:linear-gradient(90deg,#DB786F,var(--red));}
+
+table{width:100%; border-collapse:collapse; font-size:13px;}
+th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--text-dim); padding:8px 10px; border-bottom:1px solid var(--line); font-weight:700;}
+td{padding:10px 10px; border-bottom:1px solid #EEF0F5;}
+tr:last-child td{border-bottom:none;}
+.mono{font-family:'IBM Plex Mono',monospace; font-size:12px;}
+
+.badge{padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700;}
+.badge.high{background:var(--red-soft); color:var(--red);}
+.badge.med{background:var(--amber-soft); color:#96631A;}
+.badge.low{background:var(--teal-soft); color:var(--teal);}
+
+.rule-box{border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-bottom:12px; background:#FBFCFE;}
+.rule-box .rule-title{font-size:13px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:8px;}
+.check{width:16px;height:16px;border-radius:4px; background:var(--teal); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:11px; flex-shrink:0;}
+.check.x{background:var(--red);}
+.rule-detail{font-size:12.5px; color:var(--text-dim); margin-left:24px; line-height:1.5;}
+.conflict-box{border:1px solid #EBD6C9; background:var(--amber-soft); border-radius:8px; padding:14px 16px; font-size:13px; line-height:1.6;}
+.conflict-box b{color:#96631A;}
+
+.act-card{display:flex; flex-direction:column; gap:10px;}
+.act-icon{width:34px;height:34px;border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; background:var(--teal-soft); color:var(--teal); font-weight:700; font-family:'Space Grotesk',sans-serif;}
+.act-stat{font-family:'Space Grotesk',sans-serif; font-size:21px; font-weight:700; margin:4px 0 0;}
+.act-label{font-size:12px; color:var(--text-dim);}
+.status-dot{width:7px;height:7px;border-radius:50%; background:var(--teal); display:inline-block; margin-right:5px;}
+
+.why-line{display:flex; gap:10px; padding:10px 0; border-bottom:1px dashed var(--line); font-size:13px;}
+.why-line:last-child{border-bottom:none;}
+.why-k{width:150px; flex-shrink:0; color:var(--text-dim); font-size:12px; padding-top:1px;}
+.why-v{font-weight:600;}
+.why-callout{background:var(--ink); color:#EDEFF6; border-radius:10px; padding:16px 18px; font-size:13.5px; line-height:1.6; margin-top:16px;}
+.why-callout b{color:var(--amber);}
+
+/* identity / rep app */
+.identity-badge{display:inline-flex; align-items:center; gap:6px; background:var(--teal-soft); color:var(--teal); padding:5px 11px; border-radius:8px; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:700;}
+.linked-row{display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px dashed var(--line); font-size:13px;}
+.linked-row:last-child{border-bottom:none;}
+.linked-main{display:flex; flex-direction:column; gap:2px;}
+.linked-type{font-size:11px; color:var(--text-dim);}
+.conf-pill{font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:12px;}
+.conf-pill.high{background:var(--teal-soft); color:var(--teal);}
+.conf-pill.med{background:var(--amber-soft); color:#96631A;}
+.search-box{display:flex; gap:8px; margin-bottom:18px;}
+.search-box input{flex:1; padding:11px 14px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; font-family:'Inter',sans-serif;}
+.search-box input:focus{outline:none; border-color:var(--teal);}
+.search-box button{background:var(--ink); color:#fff; border:none; padding:0 20px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer;}
+.result-row{display:flex; align-items:center; justify-content:space-between; padding:13px 14px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; cursor:pointer; background:var(--card); transition:border-color .15s;}
+.result-row:hover{border-color:var(--teal);}
+.result-main{display:flex; align-items:center; gap:12px;}
+.result-name{font-weight:600; font-size:13.5px;}
+.result-meta{font-size:11.5px; color:var(--text-dim);}
+.escalation-box{border:1px solid #EBD6C9; background:var(--amber-soft); border-radius:8px; padding:16px 18px; font-size:13px; line-height:1.6;}
+.escalation-box b{color:#96631A;}
+.esc-btn{margin-top:10px; background:var(--ink); color:#fff; border:none; padding:9px 16px; border-radius:7px; font-weight:600; font-size:12.5px; cursor:pointer;}
+
+/* marketing */
+.rule-row2{display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:11px 13px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; font-size:13px; background:#FBFCFE;}
+.rule-chip2{background:var(--card); border:1px solid var(--line); border-radius:6px; padding:5px 10px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600;}
+.rule-op{color:var(--text-dim); font-size:12px;}
+.rule-joiner{font-size:10.5px; font-weight:700; color:var(--teal); text-align:left; margin:2px 0 2px 4px; letter-spacing:.5px; font-family:'IBM Plex Mono',monospace;}
+.audience-count-card{background:var(--ink); color:#fff; border-radius:10px; padding:20px 22px; display:flex; align-items:center; justify-content:space-between; margin-top:14px;}
+.audience-count-num{font-family:'Space Grotesk',sans-serif; font-size:30px; font-weight:700;}
+.audience-count-label{font-size:12px; color:#9BA2B8; margin-top:2px;}
+.save-btn{background:var(--amber); color:#22190A; border:none; padding:10px 18px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer;}
+.channel-card{display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:8px; padding:14px 16px;}
+.channel-logo{width:36px;height:36px;border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:12.5px; color:#fff; flex-shrink:0;}
+.sync-pill{font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:12px; background:var(--teal-soft); color:var(--teal);}
+.sync-pill.pending{background:var(--amber-soft); color:#96631A;}
+
+/* ledger */
+#ledger{flex-shrink:0; height:34px; background:var(--ink); color:#C9CEDC; display:flex; align-items:center; overflow:hidden; border-top:1px solid #000; position:relative;}
+#ledger .ledger-label{font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700; letter-spacing:.5px; color:#8F97AC; background:var(--ink); padding:0 14px; display:flex; align-items:center; height:100%; flex-shrink:0; border-right:1px solid rgba(255,255,255,.08); z-index:2;}
+#ledger .ledger-track{display:flex; align-items:center; gap:38px; white-space:nowrap; animation:scroll-ledger 34s linear infinite; padding-left:20px;}
+#ledger:hover .ledger-track{animation-play-state:paused;}
+@keyframes scroll-ledger{from{transform:translateX(0);} to{transform:translateX(-50%);}}
+.ledger-entry{font-family:'IBM Plex Mono',monospace; font-size:11.5px; display:flex; align-items:center; gap:8px;}
+.ledger-entry .cust{color:#fff; font-weight:600;}
+.ledger-entry .arrow{color:#555F78;}
+.ledger-entry .meta{color:#7A82A0;}
+
+/* tour */
+#tour-overlay{position:fixed; inset:0; z-index:50; display:none; pointer-events:none;}
+#tour-overlay.on{display:block;}
+#spotlight{position:absolute; border-radius:12px; box-shadow:0 0 0 9999px rgba(10,14,24,.72); transition:all .35s cubic-bezier(.4,0,.2,1); pointer-events:none;}
+#tooltip{position:absolute; width:300px; background:var(--card); border-radius:12px; padding:18px 20px; box-shadow:0 20px 45px rgba(0,0,0,.35); pointer-events:auto; transition:all .35s cubic-bezier(.4,0,.2,1);}
+#tooltip .tt-eyebrow{font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:700; color:var(--teal); letter-spacing:.5px; margin-bottom:6px;}
+#tooltip .tt-title{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px; margin-bottom:8px;}
+#tooltip .tt-body{font-size:13px; color:var(--text-dim); line-height:1.55; margin-bottom:14px;}
+.tt-foot{display:flex; align-items:center; justify-content:space-between;}
+.tt-dots{display:flex; gap:5px;}
+.tt-dots span{width:5px;height:5px;border-radius:50%; background:var(--line);}
+.tt-dots span.on{background:var(--teal); width:14px; border-radius:3px;}
+.tt-btns{display:flex; gap:8px;}
+.tt-btn{border:none; border-radius:7px; padding:7px 13px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;}
+.tt-btn.next{background:var(--ink); color:#fff;}
+.tt-btn.next:hover{background:var(--ink-2);}
+.tt-btn.skip{background:transparent; color:var(--text-dim);}
+.tt-btn.skip:hover{color:var(--text);}
+
+#intro{position:fixed; inset:0; z-index:60; background:rgba(10,14,24,.6); display:flex; align-items:center; justify-content:center;}
+#intro .box{width:480px; background:var(--card); border-radius:14px; padding:32px 34px; text-align:left; box-shadow:0 30px 60px rgba(0,0,0,.4);}
+#intro .box .eyebrow{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--teal); letter-spacing:.5px; font-weight:700; margin-bottom:10px;}
+#intro .box h1{font-family:'Space Grotesk',sans-serif; font-size:23px; margin:0 0 12px;}
+#intro .box p{font-size:13.5px; color:var(--text-dim); line-height:1.6; margin:0 0 18px;}
+#intro .box .apps-list{display:flex; flex-direction:column; gap:8px; margin-bottom:22px;}
+#intro .box .apps-list div{font-size:12.5px; color:var(--text-dim); display:flex; gap:8px; align-items:flex-start;}
+#intro .box .apps-list b{color:var(--text); font-weight:700; min-width:120px; flex-shrink:0;}
+#intro .box .row{display:flex; gap:10px;}
+#intro .box .btn-primary{flex:1; background:var(--ink); color:#fff; border:none; padding:12px; border-radius:8px; font-weight:600; cursor:pointer; font-size:13.5px;}
+#intro .box .btn-secondary{flex:1; background:#F1F3F8; color:var(--text); border:none; padding:12px; border-radius:8px; font-weight:600; cursor:pointer; font-size:13.5px;}
+
+@media (max-width:780px){
+  #sidebar{width:78px; min-width:78px; padding:18px 10px;}
+  .brand-text,.brand-sub,.nav-item span.label,.sidebar-foot,.app-switch button span{display:none;}
+  .nav-item{justify-content:center;}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+  #tooltip{width:250px;}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="sidebar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <div class="brand-text">Smart Engine</div>
+        <div class="brand-sub">Customer Intelligence Platform</div>
+      </div>
+    </div>
+
+    <div class="app-switch" id="appSwitch">
+      <button class="active" data-app="cdp">CDP</button>
+      <button data-app="rep">Rep App</button>
+      <button data-app="marketing">Marketing</button>
+    </div>
+
+    <nav id="nav"></nav>
+
+    <div class="sidebar-foot">
+      <div class="sidebar-foot-label">Prototype build · mock data only<br>No real customer data is used.</div>
+      <button class="tour-btn" id="startTour">▶ Start guided tour</button>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="topbar">
+      <div class="crumbs"><span class="env-badge">DEMO</span> &nbsp;<span id="crumbApp">Smart Engine CDP</span> &nbsp;/&nbsp; <b id="crumbCurrent">Customer 360</b></div>
+      <div class="top-right">
+        <div class="ghost" id="crumbTourStatus" style="display:none;"></div>
+        <a class="ghost" href="prd.html" target="_blank" rel="noopener">📄 View PRD ↗</a>
+        <div class="ghost">jordan@company.com</div>
+      </div>
+    </div>
+
+    <div id="canvas">
+
+      <!-- ============ CDP: CUSTOMER 360 ============ -->
+      <div class="view active" id="v-360" data-app="cdp">
+        <div class="view-head">
+          <div class="view-eyebrow">01 · IDENTITY &amp; SIGNALS</div>
+          <h1 class="view-title">Customer 360</h1>
+          <p class="view-desc">One unified record per person — identity, lifecycle stage, consent, and the raw signals feeding the models downstream. Any team (Marketing, CX, Sales, Ops) reads from the same source.</p>
+        </div>
+        <div class="grid grid-2">
+          <div class="card" id="panel-profile">
+            <div class="card-title">Customer Profile <span class="tag">TRR-88213</span></div>
+            <div class="profile-head">
+              <div class="avatar">JA</div>
+              <div>
+                <div class="profile-name">Jordyn Alvarez</div>
+                <div class="profile-id">Consignor since Mar 2022 · West Region</div>
+              </div>
+            </div>
+            <div class="kv-list">
+              <div class="kv-row"><span class="kv-label">Person ID</span><span class="identity-badge">PER-4471</span></div>
+              <div class="kv-row"><span class="kv-label">Lifecycle stage</span><span class="kv-val">Active Consignor</span></div>
+              <div class="kv-row"><span class="kv-label">Marketing consent</span><span class="pill yes">✓ Granted</span></div>
+              <div class="kv-row"><span class="kv-label">SMS consent</span><span class="pill no">Not granted</span></div>
+              <div class="kv-row"><span class="kv-label">Last listing</span><span class="kv-val">42 days ago</span></div>
+            </div>
+            <div style="margin-top:16px;">
+              <span class="tag-chip hv">High-Value Consignor</span>
+              <span class="tag-chip re">Re-engagement Candidate</span>
+            </div>
+          </div>
+
+          <div class="card" id="panel-identity">
+            <div class="card-title">Linked Identities <span class="tag">via Segment sync · 2h ago</span></div>
+            <div class="linked-row">
+              <div class="linked-main"><span>TRR-88213 · jordyn@gmail.com</span><span class="linked-type">Personal · Buyer + Consignor</span></div>
+              <span class="conf-pill high">94% match</span>
+            </div>
+            <div class="linked-row">
+              <div class="linked-main"><span>TRR-90441 · jordyn@resellerco.com</span><span class="linked-type">Business · Consignor</span></div>
+              <span class="conf-pill high">94% match</span>
+            </div>
+            <div class="linked-row">
+              <div class="linked-main"><span>Anonymous session · mobile device</span><span class="linked-type">Browsing only, not yet logged in</span></div>
+              <span class="conf-pill med">71% match</span>
+            </div>
+            <div class="rule-detail" style="margin-left:0; margin-top:10px;">This is what makes the numbers above person-level, not account-level: lifetime payouts and activity are combined across all three identities.</div>
+          </div>
+        </div>
+
+        <div class="grid grid-4" style="margin-top:16px;">
+          <div class="card"><div class="card-title">Lifetime Payouts (person-level)</div><div class="act-stat">$4,920</div><div class="act-label">Across 2 linked accounts</div></div>
+          <div class="card"><div class="card-title">Days Since Last Listing</div><div class="act-stat">42</div><div class="act-label">Trending above threshold (30d)</div></div>
+          <div class="card"><div class="card-title">Channel Fatigue</div><div class="act-stat">Medium</div><div class="act-label">3 sends in past 14 days</div></div>
+          <div class="card"><div class="card-title">Inventory Interaction</div><div class="act-stat">High</div><div class="act-label">Views own listings weekly</div></div>
+        </div>
+      </div>
+
+      <!-- ============ CDP: SIGNALS & MODELS ============ -->
+      <div class="view" id="v-signals" data-app="cdp">
+        <div class="view-head">
+          <div class="view-eyebrow">02 · MODEL OUTPUTS</div>
+          <h1 class="view-title">Signals &amp; Model Outputs</h1>
+          <p class="view-desc">Smart Engine's models publish scores here — the CDP does not run models, it is the single place their outputs live so nobody re-derives logic downstream.</p>
+        </div>
+        <div class="grid grid-2">
+          <div class="card" id="panel-scores">
+            <div class="card-title">Model Scores <span class="tag">PER-4471 · model v2.3</span></div>
+            <div class="score-row"><div class="score-label-row"><span>Propensity to Relist</span><b>0.82</b></div><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div></div>
+            <div class="score-row"><div class="score-label-row"><span>Churn Risk</span><b>0.41</b></div><div class="bar-track"><div class="bar-fill amber" style="width:41%"></div></div></div>
+            <div class="score-row"><div class="score-label-row"><span>Offer Sensitivity</span><b>0.67</b></div><div class="bar-track"><div class="bar-fill" style="width:67%"></div></div></div>
+            <div class="score-row"><div class="score-label-row"><span>Support Escalation Risk</span><b>0.12</b></div><div class="bar-track"><div class="bar-fill" style="width:12%"></div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Next-Best-Action</div>
+            <div class="rule-box" style="background:var(--teal-soft); border-color:#C8E6E0;">
+              <div class="rule-title"><span class="check">✓</span> Send reactivation offer</div>
+              <div class="rule-detail">Confidence 0.82 · driven by high inventory interaction + moderate churn risk. Recommended channel: email.</div>
+            </div>
+            <div class="rule-detail" style="margin-left:0; margin-top:6px;">Scored 14 minutes ago · refreshes nightly at 02:00 UTC</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">Segment Comparison <span class="tag">sample of 5 people</span></div>
+          <table>
+            <tr><th>Person</th><th>Segment</th><th>Propensity</th><th>Churn Risk</th><th>Next-Best-Action</th></tr>
+            <tr><td class="mono">PER-4471</td><td>High-Value</td><td>0.82</td><td><span class="badge med">Medium</span></td><td>Reactivation offer</td></tr>
+            <tr><td class="mono">PER-2290</td><td>At-Risk</td><td>0.34</td><td><span class="badge high">High</span></td><td>Suppress (see Decision Layer)</td></tr>
+            <tr><td class="mono">PER-8813</td><td>High-Value</td><td>0.91</td><td><span class="badge low">Low</span></td><td>Priority outreach (Sales)</td></tr>
+            <tr><td class="mono">PER-1027</td><td>New</td><td>0.55</td><td><span class="badge low">Low</span></td><td>Onboarding nudge</td></tr>
+            <tr><td class="mono">PER-5541</td><td>Dormant</td><td>0.19</td><td><span class="badge high">High</span></td><td>Win-back sequence</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ CDP: DECISION LAYER ============ -->
+      <div class="view" id="v-decision" data-app="cdp">
+        <div class="view-head">
+          <div class="view-eyebrow">03 · ELIGIBILITY &amp; RULES</div>
+          <h1 class="view-title">Decision Layer</h1>
+          <p class="view-desc">The CDP determines eligibility, not execution — combining model output with business rules, guardrails, and conflict resolution before anything is activated.</p>
+        </div>
+        <div class="grid grid-2">
+          <div class="card" id="panel-eligibility">
+            <div class="card-title">Eligibility Check <span class="tag">PER-4471</span></div>
+            <div class="rule-box"><div class="rule-title"><span class="check">✓</span> Propensity score above threshold (0.82 &gt; 0.70)</div></div>
+            <div class="rule-box"><div class="rule-title"><span class="check">✓</span> Marketing consent on file</div></div>
+            <div class="rule-box"><div class="rule-title"><span class="check">✓</span> Not in suppression list</div></div>
+            <div class="rule-box" style="background:#F2F8FF; border-color:#D6E8FB;">
+              <div class="rule-title" style="color:var(--teal);">→ Result: Eligible for reactivation_offer</div>
+              <div class="rule-detail">Priority: Medium · Channel: Email · Expires in 7 days</div>
+            </div>
+          </div>
+          <div class="card" id="panel-conflict">
+            <div class="card-title">Conflict Resolution Example <span class="tag">PER-2290</span></div>
+            <div class="conflict-box">
+              <b>Model recommends:</b> send_offer (propensity 0.71)<br>
+              <b>Ops rule flags:</b> customer filed a complaint 4 days ago<br><br>
+              <b>Resolution:</b> Ops suppression rule takes priority over model recommendation. Excluded from this campaign, reason logged for review.
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">Ops Priority Queue <span class="tag">auto-generated</span></div>
+          <table>
+            <tr><th>Person</th><th>Reason for queue</th><th>Priority</th><th>Owner</th></tr>
+            <tr><td class="mono">PER-2290</td><td>Complaint + high churn risk — needs human review</td><td><span class="badge high">High</span></td><td>CX Team</td></tr>
+            <tr><td class="mono">PER-8813</td><td>High-value, high propensity — upsell opportunity</td><td><span class="badge med">Medium</span></td><td>Sales</td></tr>
+            <tr><td class="mono">PER-5541</td><td>Dormant 90+ days, win-back window closing</td><td><span class="badge med">Medium</span></td><td>Marketing</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ CDP: ACTIVATION ============ -->
+      <div class="view" id="v-activation" data-app="cdp">
+        <div class="view-head">
+          <div class="view-eyebrow">04 · INTERFACES</div>
+          <h1 class="view-title">Activation</h1>
+          <p class="view-desc">Every downstream team consumes the same decision through a simple interface — nobody re-derives eligibility logic in their own tool.</p>
+        </div>
+        <div class="grid grid-4" id="panel-activation">
+          <div class="card act-card"><div class="act-icon">M</div><div class="card-title" style="margin-bottom:0;">Marketing</div><div class="act-stat">12,384</div><div class="act-label">People in "Reactivation Q3" audience</div><div><span class="status-dot"></span><span style="font-size:11.5px; color:var(--text-dim);">Synced 6 min ago</span></div></div>
+          <div class="card act-card"><div class="act-icon">CX</div><div class="card-title" style="margin-bottom:0;">Customer Experience</div><div class="act-stat">Live</div><div class="act-label">Context widget shown inline in support tickets</div><div><span class="status-dot"></span><span style="font-size:11.5px; color:var(--text-dim);">Connected</span></div></div>
+          <div class="card act-card"><div class="act-icon">S</div><div class="card-title" style="margin-bottom:0;">Sales / Rep App</div><div class="act-stat">184</div><div class="act-label">Accounts in this week's outreach priority list</div><div><span class="status-dot"></span><span style="font-size:11.5px; color:var(--text-dim);">Refreshed nightly</span></div></div>
+          <div class="card act-card"><div class="act-icon">B</div><div class="card-title" style="margin-bottom:0;">Buyers / Ops</div><div class="act-stat">37</div><div class="act-label">Items queued for review decisions</div><div><span class="status-dot"></span><span style="font-size:11.5px; color:var(--text-dim);">Connected</span></div></div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">Activation API <span class="tag">example requests</span></div>
+          <table>
+            <tr><th>Endpoint</th><th>Purpose</th><th>Consumers</th></tr>
+            <tr><td class="mono">GET /audience/best</td><td>Return eligible people for a given action</td><td>Marketing, Sales</td></tr>
+            <tr><td class="mono">GET /identity/lookup</td><td>Resolve any identifier to a Person ID + linked accounts</td><td>Rep App, CX</td></tr>
+            <tr><td class="mono">GET /decision/explain</td><td>Return the reasoning trace behind a decision</td><td>All teams, Compliance</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ CDP: EXPLAINABILITY ============ -->
+      <div class="view" id="v-explain" data-app="cdp">
+        <div class="view-head">
+          <div class="view-eyebrow">05 · TRUST</div>
+          <h1 class="view-title">Explainability</h1>
+          <p class="view-desc">For any person, at any time, the CDP can answer why a decision was made — which is what ultimately earns trust from teams outside Data Science.</p>
+        </div>
+        <div class="grid grid-2">
+          <div class="card" id="panel-why">
+            <div class="card-title">Decision Trace <span class="tag">PER-4471 · decision #58213-a</span></div>
+            <div class="why-line"><div class="why-k">Signals used</div><div class="why-v">days_since_listing, engagement_recency, channel_fatigue</div></div>
+            <div class="why-line"><div class="why-k">Model</div><div class="why-v">propensity_v2.3, scored 14 min ago</div></div>
+            <div class="why-line"><div class="why-k">Business rule applied</div><div class="why-v">reactivation_eligibility_v4</div></div>
+            <div class="why-line"><div class="why-k">Conflict check</div><div class="why-v">None triggered</div></div>
+            <div class="why-line"><div class="why-k">Resulting action</div><div class="why-v">reactivation_offer, email, priority: medium</div></div>
+            <div class="why-callout">"Included because propensity to relist scored <b>0.82</b> (above the 0.70 threshold), the person has active marketing consent, and no suppression rules were triggered."</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Full Decision Log</div>
+            <table>
+              <tr><th>Time</th><th>Person</th><th>Decision</th><th>Reason</th></tr>
+              <tr><td class="mono">10:41</td><td class="mono">4471</td><td>Eligible</td><td>Propensity 0.82, consent ✓</td></tr>
+              <tr><td class="mono">10:39</td><td class="mono">2290</td><td>Suppressed</td><td>Ops override: recent complaint</td></tr>
+              <tr><td class="mono">10:37</td><td class="mono">8813</td><td>Priority flag</td><td>High-value + high propensity</td></tr>
+              <tr><td class="mono">10:35</td><td class="mono">5541</td><td>Win-back queued</td><td>Dormant 90+ days</td></tr>
+              <tr><td class="mono">10:33</td><td class="mono">1027</td><td>Onboarding nudge</td><td>New person, low activity</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ REP APP: SEARCH ============ -->
+      <div class="view" id="v-rep-search" data-app="rep">
+        <div class="view-head">
+          <div class="view-eyebrow">01 · CUSTOMER 360 IDENTITY API</div>
+          <h1 class="view-title">Customer Search</h1>
+          <p class="view-desc">Search by any identifier — email, phone, or TRR user ID. The Identity API resolves it to a Person ID so you see the whole relationship, not one fragment of it.</p>
+        </div>
+        <div class="search-box">
+          <input id="repSearchInput" type="text" placeholder="Search email, phone, or TRR user ID..." value="jordyn">
+          <button id="repSearchBtn">Search</button>
+        </div>
+        <div id="repResults">
+          <div class="result-row" onclick="openRepProfile()">
+            <div class="result-main">
+              <div class="avatar" style="width:38px;height:38px;font-size:13px;">JA</div>
+              <div><div class="result-name">Jordyn Alvarez</div><div class="result-meta">jordyn@gmail.com · jordyn@resellerco.com · 2 linked accounts</div></div>
+            </div>
+            <span class="identity-badge">PER-4471</span>
+          </div>
+          <div class="result-row" onclick="openRepProfile()">
+            <div class="result-main">
+              <div class="avatar" style="width:38px;height:38px;font-size:13px; background:linear-gradient(135deg,#7F77DD,#534AB7);">MK</div>
+              <div><div class="result-name">Maya Kessler</div><div class="result-meta">maya.k@outlook.com · 1 linked account</div></div>
+            </div>
+            <span class="identity-badge">PER-7702</span>
+          </div>
+        </div>
+        <div class="card" style="margin-top:18px;">
+          <div class="card-title">Why this matters for reps</div>
+          <p style="font-size:13px; color:var(--text-dim); margin:0; line-height:1.6;">Before this API, a rep searching "jordyn@resellerco.com" would only see her business consignor account — missing that she is also a personal buyer with a $4,920 lifetime relationship. One search now surfaces the full person.</p>
+        </div>
+      </div>
+
+      <!-- ============ REP APP: UNIFIED PROFILE ============ -->
+      <div class="view" id="v-rep-profile" data-app="rep">
+        <div class="view-head">
+          <div class="view-eyebrow">02 · UNIFIED PROFILE</div>
+          <h1 class="view-title">Jordyn Alvarez <span class="identity-badge" style="vertical-align:middle; margin-left:8px;">PER-4471</span></h1>
+          <p class="view-desc">Everything this rep needs before the call — resolved across every account this person has ever used.</p>
+        </div>
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-title">Linked Accounts <span class="tag">94% match confidence</span></div>
+            <div class="linked-row"><div class="linked-main"><span>TRR-88213 · jordyn@gmail.com</span><span class="linked-type">Personal · Buyer + Consignor</span></div><span class="conf-pill high">94%</span></div>
+            <div class="linked-row"><div class="linked-main"><span>TRR-90441 · jordyn@resellerco.com</span><span class="linked-type">Business · Consignor</span></div><span class="conf-pill high">94%</span></div>
+            <div class="linked-row"><div class="linked-main"><span>Anonymous mobile session</span><span class="linked-type">Browsing only</span></div><span class="conf-pill med">71%</span></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Person-Level Value</div>
+            <div class="grid grid-2" style="gap:12px;">
+              <div><div class="act-label">Lifetime spend</div><div class="act-stat">$4,920</div></div>
+              <div><div class="act-label">Orders</div><div class="act-stat">37</div></div>
+              <div><div class="act-label">Consignments</div><div class="act-stat">112</div></div>
+              <div><div class="act-label">Churn risk</div><div class="act-stat">Medium</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-2" style="margin-top:16px;">
+          <div class="card">
+            <div class="card-title">Recent Activity <span class="tag">across all linked accounts</span></div>
+            <ul class="timeline">
+              <li><div class="t-when">Jun 02</div>Listed 3 items in "Designer Handbags" (business account)</li>
+              <li><div class="t-when">May 26</div>Payout of $186 processed (business account)</li>
+              <li><div class="t-when">May 14</div>Opened "Spring Payout Bonus" email (personal account)</li>
+              <li><div class="t-when">Apr 03</div>Contacted support re: shipping label (personal account)</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-title">Suggested Talking Point</div>
+            <div class="rule-box" style="background:var(--teal-soft); border-color:#C8E6E0;">
+              <div class="rule-title"><span class="check">✓</span> Recommend reactivation offer</div>
+              <div class="rule-detail">From Smart Engine CDP: propensity 0.82, no listings in 42 days, high inventory interaction. Suggest mentioning the business account's strong consignment history.</div>
+            </div>
+            <button class="esc-btn" style="margin-top:4px;">Log this interaction</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ REP APP: ESCALATIONS ============ -->
+      <div class="view" id="v-rep-escalation" data-app="rep">
+        <div class="view-head">
+          <div class="view-eyebrow">03 · FALLBACK HANDLING</div>
+          <h1 class="view-title">Escalations</h1>
+          <p class="view-desc">Identity resolution is not always perfect. When a lookup is ambiguous or fails, the rep sees exactly why instead of a silent wrong answer.</p>
+        </div>
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-title">Could Not Resolve <span class="tag">search: "555-0199"</span></div>
+            <div class="escalation-box">
+              <b>No confident match found.</b> This phone number appears on 2 accounts with a match confidence of 42%, below the 70% threshold needed to auto-link.
+            </div>
+            <button class="esc-btn">View both accounts separately</button>
+          </div>
+          <div class="card">
+            <div class="card-title">Recently Un-merged <span class="tag">Segment profile split</span></div>
+            <div class="escalation-box">
+              <b>Heads up:</b> PER-3390 was split into 2 people 3 hours ago after Segment corrected a prior match. Reports referencing PER-3390 before 09:14 UTC today may reflect the old, incorrect grouping.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ MARKETING: AUDIENCE BUILDER ============ -->
+      <div class="view" id="v-mk-builder" data-app="marketing">
+        <div class="view-head">
+          <div class="view-eyebrow">01 · AUDIENCE BUILDER</div>
+          <h1 class="view-title">Build an Audience</h1>
+          <p class="view-desc">Combine CDP signals, model scores, and consent flags into a reusable audience — built once, synced everywhere.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Rule: "Q3 Reactivation" <span class="tag">draft</span></div>
+          <div class="rule-row2"><span class="rule-chip2">propensity_to_relist</span><span class="rule-op">&gt;</span><span class="rule-chip2">0.70</span></div>
+          <div class="rule-joiner">AND</div>
+          <div class="rule-row2"><span class="rule-chip2">marketing_consent</span><span class="rule-op">=</span><span class="rule-chip2">true</span></div>
+          <div class="rule-joiner">AND NOT</div>
+          <div class="rule-row2"><span class="rule-chip2">suppression_list</span><span class="rule-op">contains</span><span class="rule-chip2">person_id</span></div>
+          <div class="audience-count-card">
+            <div><div class="audience-count-num">12,384</div><div class="audience-count-label">people currently match this rule</div></div>
+            <button class="save-btn" onclick="goToMkView('v-mk-library')">Save audience</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">Why this is different from a marketing tool's own segments</div>
+          <p style="font-size:13px; color:var(--text-dim); margin:0; line-height:1.6;">This rule reads directly off the CDP's model outputs and person-level identity — so "12,384 people" already excludes anyone suppressed, deduplicates across linked accounts, and reflects this morning's model refresh. No separate segment logic to keep in sync.</p>
+        </div>
+      </div>
+
+      <!-- ============ MARKETING: AUDIENCE LIBRARY ============ -->
+      <div class="view" id="v-mk-library" data-app="marketing">
+        <div class="view-head">
+          <div class="view-eyebrow">02 · SAVED AUDIENCES</div>
+          <h1 class="view-title">Audience Library</h1>
+          <p class="view-desc">Every saved audience, its size, and where it is currently synced.</p>
+        </div>
+        <div class="card">
+          <table>
+            <tr><th>Audience</th><th>Size</th><th>Criteria</th><th>Synced to</th><th>Last synced</th></tr>
+            <tr><td>Q3 Reactivation</td><td class="mono">12,384</td><td>Propensity &gt; 0.70, consented</td><td>Email, Meta Ads</td><td class="mono">6 min ago</td></tr>
+            <tr><td>High-Value Consignors</td><td class="mono">3,105</td><td>Lifetime spend &gt; $2,000</td><td>Email, SMS</td><td class="mono">1 hr ago</td></tr>
+            <tr><td>Dormant 90+ Days</td><td class="mono">8,940</td><td>No activity in 90 days</td><td>Email, Google Ads</td><td class="mono">Pending sync</td></tr>
+            <tr><td>New Sellers, Week 1</td><td class="mono">612</td><td>Lifecycle stage = New, age &lt; 7d</td><td>Email</td><td class="mono">3 hrs ago</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ MARKETING: CHANNEL SYNC ============ -->
+      <div class="view" id="v-mk-channels" data-app="marketing">
+        <div class="view-head">
+          <div class="view-eyebrow">03 · CHANNEL SYNC</div>
+          <h1 class="view-title">Channel Sync</h1>
+          <p class="view-desc">"Q3 Reactivation" (12,384 people) and where it is exported. One audience, pushed to every channel it needs to reach.</p>
+        </div>
+        <div class="grid grid-2">
+          <div class="channel-card"><div class="channel-logo" style="background:#1C8C7C;">EM</div><div style="flex:1;"><div style="font-weight:600; font-size:13.5px;">Email (ESP)</div><div class="act-label">12,384 synced</div></div><span class="sync-pill">Synced</span></div>
+          <div class="channel-card"><div class="channel-logo" style="background:#3D74C9;">FB</div><div style="flex:1;"><div style="font-weight:600; font-size:13.5px;">Meta Ads</div><div class="act-label">11,940 synced (444 unmatched)</div></div><span class="sync-pill">Synced</span></div>
+          <div class="channel-card"><div class="channel-logo" style="background:#E8A33D;">GA</div><div style="flex:1;"><div style="font-weight:600; font-size:13.5px;">Google Ads</div><div class="act-label">Not yet connected</div></div><span class="sync-pill pending">Pending</span></div>
+          <div class="channel-card"><div class="channel-logo" style="background:#D4537E;">SMS</div><div style="flex:1;"><div style="font-weight:600; font-size:13.5px;">SMS</div><div class="act-label">Excluded — most people lack SMS consent</div></div><span class="sync-pill pending">Not eligible</span></div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">Sync History</div>
+          <table>
+            <tr><th>Time</th><th>Channel</th><th>Result</th></tr>
+            <tr><td class="mono">10:41</td><td>Email</td><td>12,384 records pushed successfully</td></tr>
+            <tr><td class="mono">10:41</td><td>Meta Ads</td><td>11,940 matched, 444 unmatched (no hashed email on file)</td></tr>
+            <tr><td class="mono">09:58</td><td>Google Ads</td><td>Sync failed — connector not authorized</td></tr>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="ledger">
+      <div class="ledger-label">DECISION&nbsp;LEDGER</div>
+      <div class="ledger-track" id="ledgerTrack"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tour overlay -->
+<div id="tour-overlay">
+  <div id="spotlight"></div>
+  <div id="tooltip">
+    <div class="tt-eyebrow" id="ttEyebrow">STEP 1 / 5</div>
+    <div class="tt-title" id="ttTitle"></div>
+    <div class="tt-body" id="ttBody"></div>
+    <div class="tt-foot">
+      <div class="tt-dots" id="ttDots"></div>
+      <div class="tt-btns">
+        <button class="tt-btn skip" id="ttSkip">Skip</button>
+        <button class="tt-btn next" id="ttNext">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Intro modal -->
+<div id="intro">
+  <div class="box">
+    <div class="eyebrow">SMART ENGINE · PLATFORM PROTOTYPE</div>
+    <h1>One identity layer, three teams</h1>
+    <p>Smart Engine resolves every customer to a single Person ID, then powers three surfaces off that same layer. All data shown is fictional.</p>
+    <div class="apps-list">
+      <div><b>CDP</b> Signals, decisions, and explainability — the core engine.</div>
+      <div><b>Rep App</b> Search any identifier, see the whole person, act on it.</div>
+      <div><b>Marketing</b> Build audiences from CDP signals, sync to any channel.</div>
+    </div>
+    <div class="row">
+      <button class="btn-secondary" id="introExplore">Explore on my own</button>
+      <button class="btn-primary" id="introTour">Take the CDP tour</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const navConfig = {
+  cdp: [
+    {view:'v-360', label:'Customer 360'},
+    {view:'v-signals', label:'Signals & Models'},
+    {view:'v-decision', label:'Decision Layer'},
+    {view:'v-activation', label:'Activation'},
+    {view:'v-explain', label:'Explainability'}
+  ],
+  rep: [
+    {view:'v-rep-search', label:'Customer Search'},
+    {view:'v-rep-profile', label:'Unified Profile'},
+    {view:'v-rep-escalation', label:'Escalations'}
+  ],
+  marketing: [
+    {view:'v-mk-builder', label:'Audience Builder'},
+    {view:'v-mk-library', label:'Audience Library'},
+    {view:'v-mk-channels', label:'Channel Sync'}
+  ]
+};
+const appTitles = {cdp:'Smart Engine CDP', rep:'Smart Engine · Rep App', marketing:'Smart Engine · Marketing Intelligence'};
+const allViewLabels = {};
+Object.keys(navConfig).forEach(app=>{ navConfig[app].forEach(item=>{ allViewLabels[item.view] = item.label; }); });
+
+let currentApp = 'cdp';
+
+function renderNav(){
+  const nav = document.getElementById('nav');
+  nav.innerHTML = navConfig[currentApp].map((item,i)=>
+    `<div class="nav-item" data-view="${item.view}"><span class="nav-num">0${i+1}</span><span class="dot"></span><span class="label">${item.label}</span></div>`
+  ).join('');
+  nav.querySelectorAll('.nav-item').forEach(el=>{
+    el.addEventListener('click', ()=>{ showView(el.dataset.view); endTour(); });
+  });
+}
+
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id===id));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===id));
+  document.getElementById('crumbCurrent').textContent = allViewLabels[id] || '';
+}
+
+function switchApp(app){
+  currentApp = app;
+  document.querySelectorAll('#appSwitch button').forEach(b=>b.classList.toggle('active', b.dataset.app===app));
+  document.getElementById('crumbApp').textContent = appTitles[app];
+  renderNav();
+  showView(navConfig[app][0].view);
+}
+
+document.querySelectorAll('#appSwitch button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{ switchApp(btn.dataset.app); endTour(); });
+});
+
+function goToMkView(viewId){
+  showView(viewId);
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===viewId));
+}
+function openRepProfile(){
+  showView('v-rep-profile');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view==='v-rep-profile'));
+}
+
+renderNav();
+
+// ---------- Decision ledger ticker ----------
+const ledgerEntries = [
+  {c:'PER-4471', a:'eligible: reactivation_offer', m:'model v2.3 · conf 0.82'},
+  {c:'PER-2290', a:'suppressed: ops override', m:'reason: recent complaint'},
+  {c:'PER-8813', a:'flagged: priority outreach', m:'propensity 0.91'},
+  {c:'PER-5541', a:'queued: win-back sequence', m:'dormant 92 days'},
+  {c:'PER-4471', a:'identity resolved: 2 accounts merged', m:'confidence 94%'},
+  {c:'PER-7702', a:'audience match: Q3 Reactivation', m:'synced to Email, Meta Ads'},
+  {c:'PER-3390', a:'identity split: profile un-merged', m:'Segment correction'},
+];
+const track = document.getElementById('ledgerTrack');
+function renderLedger(){
+  const html = ledgerEntries.map(e=>
+    `<span class="ledger-entry"><span class="cust">${e.c}</span><span class="arrow">→</span>${e.a}<span class="meta">· ${e.m}</span></span>`
+  ).join('');
+  track.innerHTML = html + html;
+}
+renderLedger();
+
+// ---------- Guided tour (CDP only) ----------
+const tourSteps = [
+  {view:'v-360', target:'#panel-profile', title:'Identity, unified', body:'Every person has one record: lifecycle stage, consent flags, and history — no more piecing this together across five tools.'},
+  {view:'v-360', target:'#panel-identity', title:'The identity layer underneath', body:'This is new: multiple TRR accounts, resolved by Segment, merged into one Person ID. Everything else on this page is now person-level, not account-level.'},
+  {view:'v-signals', target:'#panel-scores', title:'Model outputs, not models', body:'The CDP does not run models — Smart Engine does. This is where every model output gets published so it can be trusted and reused.'},
+  {view:'v-decision', target:'#panel-eligibility', title:'Eligibility, decided once', body:'Business rules combine with model scores here — so downstream tools do not each reinvent the eligibility logic differently.'},
+  {view:'v-decision', target:'#panel-conflict', title:'Conflicts get resolved with a clear reason', body:'When a business rule and a model disagree, the CDP resolves it — and logs why, instead of silently picking one.'},
+  {view:'v-activation', target:'#panel-activation', title:'One decision, many channels', body:'Marketing, CX, Sales, and Ops all activate the same decision through a simple interface — no duplicated logic per channel.'},
+  {view:'v-explain', target:'#panel-why', title:'Always explainable', body:'For any person, at any time: which signals, which model, which rule, and why. This is what earns trust outside the DS team.'},
+];
+let tourIdx = 0;
+let tourActive = false;
+
+function endTour(){
+  tourActive = false;
+  document.getElementById('tour-overlay').classList.remove('on');
+  document.getElementById('crumbTourStatus').style.display = 'none';
+}
+
+function positionTour(){
+  const step = tourSteps[tourIdx];
+  const target = document.querySelector(step.target);
+  if(!target) return;
+  const rect = target.getBoundingClientRect();
+  const pad = 8;
+  const spot = document.getElementById('spotlight');
+  spot.style.left = (rect.left - pad) + 'px';
+  spot.style.top = (rect.top - pad) + 'px';
+  spot.style.width = (rect.width + pad*2) + 'px';
+  spot.style.height = (rect.height + pad*2) + 'px';
+
+  document.getElementById('ttEyebrow').textContent = `STEP ${tourIdx+1} / ${tourSteps.length}`;
+  document.getElementById('ttTitle').textContent = step.title;
+  document.getElementById('ttBody').textContent = step.body;
+  document.getElementById('ttDots').innerHTML = tourSteps.map((_,i)=>`<span class="${i===tourIdx?'on':''}"></span>`).join('');
+  document.getElementById('ttNext').textContent = tourIdx === tourSteps.length-1 ? 'Finish' : 'Next';
+
+  const tip = document.getElementById('tooltip');
+  let left = rect.right + 20;
+  let top = rect.top;
+  if(left + 300 > window.innerWidth - 20){
+    left = Math.max(20, rect.left);
+    top = rect.bottom + 16;
+  }
+  if(top + 200 > window.innerHeight - 40){
+    top = window.innerHeight - 220;
+  }
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+
+  document.getElementById('crumbTourStatus').style.display = 'block';
+  document.getElementById('crumbTourStatus').textContent = `Tour step ${tourIdx+1} of ${tourSteps.length}`;
+}
+
+function goToStep(i){
+  if(i >= tourSteps.length){ endTour(); return; }
+  tourIdx = i;
+  const step = tourSteps[tourIdx];
+  if(currentApp !== 'cdp'){ switchApp('cdp'); }
+  showView(step.view);
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===step.view));
+  tourActive = true;
+  document.getElementById('tour-overlay').classList.add('on');
+  requestAnimationFrame(()=>requestAnimationFrame(positionTour));
+}
+
+function startTour(){
+  document.getElementById('intro').style.display = 'none';
+  goToStep(0);
+}
+
+document.getElementById('startTour').addEventListener('click', startTour);
+document.getElementById('introTour').addEventListener('click', startTour);
+document.getElementById('introExplore').addEventListener('click', ()=>{ document.getElementById('intro').style.display='none'; });
+document.getElementById('ttNext').addEventListener('click', ()=>goToStep(tourIdx+1));
+document.getElementById('ttSkip').addEventListener('click', endTour);
+document.getElementById('repSearchBtn').addEventListener('click', openRepProfile);
+window.addEventListener('resize', ()=>{ if(tourActive) positionTour(); });
+</script>
+</body>
+</html>

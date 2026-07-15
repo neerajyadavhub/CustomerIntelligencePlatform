@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Engine — Product Requirements</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0F1626; --ink-2:#171F33; --paper:#F7F8FB; --card:#FFFFFF;
+  --line:#DFE3EC; --text:#1B2130; --text-dim:#5B6478;
+  --teal:#1C8C7C; --teal-soft:#E4F3F0; --amber:#E8A33D; --amber-soft:#FCF0DC;
+  --red:#C4534A; --red-soft:#FBEAE8;
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:'Inter',sans-serif; background:var(--paper); color:var(--text); line-height:1.6;}
+#topbar{height:58px; border-bottom:1px solid var(--line); background:var(--card); display:flex; align-items:center; justify-content:space-between; padding:0 26px; position:sticky; top:0; z-index:5;}
+.crumbs{font-size:12.5px; color:var(--text-dim); display:flex; align-items:center; gap:7px;}
+.crumbs b{color:var(--text); font-weight:600;}
+.env-badge{font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600; color:var(--teal); background:var(--teal-soft); border:1px solid #C8E6E0; padding:2px 7px; border-radius:5px; letter-spacing:.4px;}
+.back-link{font-size:12.5px; font-weight:600; color:var(--text); text-decoration:none; border:1px solid var(--line); padding:7px 12px; border-radius:7px; background:var(--card);}
+.back-link:hover{background:#F1F3F8;}
+
+.wrap{max-width:800px; margin:0 auto; padding:48px 24px 100px;}
+.doc-eyebrow{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--teal); letter-spacing:.6px; font-weight:700; margin-bottom:12px;}
+h1.doc-title{font-family:'Space Grotesk',sans-serif; font-size:32px; font-weight:700; margin:0 0 10px; line-height:1.2;}
+.doc-sub{color:var(--text-dim); font-size:14.5px; margin:0 0 32px;}
+
+.toc{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 20px; margin-bottom:40px; font-size:13px;}
+.toc b{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-dim); margin-bottom:10px;}
+.toc a{display:block; color:var(--text); text-decoration:none; padding:3px 0;}
+.toc a:hover{color:var(--teal);}
+
+.section-badge{display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.4px; padding:3px 10px; border-radius:20px; margin-bottom:8px;}
+.section-badge.cdp{background:var(--teal-soft); color:var(--teal);}
+.section-badge.identity{background:var(--blue-soft,#E8F0FB); color:#3D74C9;}
+.section-badge.rep{background:var(--amber-soft); color:#96631A;}
+.section-badge.marketing{background:#FBEAF0; color:#993556;}
+
+h2{font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; margin:48px 0 14px; padding-top:20px; border-top:1px solid var(--line);}
+h2:first-of-type{border-top:none; padding-top:0; margin-top:0;}
+h3{font-size:14.5px; font-weight:700; margin:22px 0 8px;}
+p{font-size:14.5px; color:var(--text); margin:0 0 14px;}
+ul,ol{font-size:14.5px; margin:0 0 14px; padding-left:22px;}
+li{margin-bottom:6px;}
+.callout{background:var(--ink); color:#EDEFF6; border-radius:10px; padding:18px 20px; font-size:15px; line-height:1.65; margin:18px 0;}
+.callout b{color:var(--amber);}
+.pill-row{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 18px;}
+.pill{font-size:12.5px; font-weight:600; padding:5px 12px; border-radius:20px;}
+.pill.good{background:var(--teal-soft); color:var(--teal);}
+.pill.bad{background:var(--red-soft); color:var(--red);}
+.persona-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0 20px;}
+.persona-card{border:1px solid var(--line); border-radius:8px; padding:12px 14px; font-size:13.5px; background:var(--card); color:var(--text-dim);}
+.persona-card b{display:block; font-size:13px; margin-bottom:4px; color:var(--text);}
+.diagram{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:22px 24px; margin:16px 0; font-family:'IBM Plex Mono',monospace; font-size:13px; line-height:2.1; color:var(--text-dim); text-align:center;}
+.diagram .node{color:var(--text); font-weight:600;}
+.diagram .arrow{color:var(--teal);}
+.phase-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:14px 0 20px;}
+.phase-card{border:1px solid var(--line); border-radius:8px; padding:14px 16px; background:var(--card);}
+.phase-card .num{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--teal); font-weight:700; margin-bottom:6px;}
+.phase-card b{display:block; font-size:13.5px; margin-bottom:6px;}
+.phase-card ul{margin:0; padding-left:16px; font-size:12.5px;}
+table{width:100%; border-collapse:collapse; font-size:13.5px; margin:14px 0 20px;}
+th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--text-dim); padding:8px 10px; border-bottom:1px solid var(--line); font-weight:700;}
+td{padding:9px 10px; border-bottom:1px solid #EEF0F5;}
+.metric-list{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:14px 0 20px;}
+.metric-item{font-size:13.5px; border:1px solid var(--line); border-radius:8px; padding:10px 14px; background:var(--card);}
+.code-block{background:var(--ink); color:#C9CEDC; border-radius:8px; padding:16px 18px; font-family:'IBM Plex Mono',monospace; font-size:12.5px; line-height:1.7; margin:14px 0 20px; overflow-x:auto; white-space:pre;}
+.story{border:1px solid var(--line); border-radius:8px; padding:12px 16px; margin-bottom:8px; font-size:13.5px; background:var(--card);}
+.story b{color:var(--teal);}
+
+@media (max-width:600px){
+  .persona-grid,.phase-grid,.metric-list{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div class="crumbs"><span class="env-badge">DEMO</span> &nbsp;Smart Engine &nbsp;/&nbsp; <b>Product Requirements</b></div>
+  <a class="back-link" href="index.html">← Back to prototype</a>
+</div>
+
+<div class="wrap">
+  <div class="doc-eyebrow">PRODUCT REQUIREMENTS · V2</div>
+  <h1 class="doc-title">Smart Engine</h1>
+  <p class="doc-sub">One identity layer, three surfaces: a decision engine (CDP), a unified view for reps (Rep App), and an audience platform for marketing — all reading off the same Person ID.</p>
+
+  <div class="toc">
+    <b>Contents</b>
+    <a href="#part1">Part 1 — Why one identity layer changes everything</a>
+    <a href="#part2">Part 2 — CDP: the decision engine (recap)</a>
+    <a href="#part3">Part 3 — Identity Layer: Customer 360 Identity API</a>
+    <a href="#part4">Part 4 — Rep App</a>
+    <a href="#part5">Part 5 — Marketing Intelligence Platform</a>
+    <a href="#part6">Part 6 — Revised phasing</a>
+  </div>
+
+  <h2 id="part1">Part 1 — Why one identity layer changes everything</h2>
+  <p>The original CDP PRD treated "customer" as one account. In practice, TRR has learned that one real person often shows up as multiple accounts — a personal email, a business email, an anonymous mobile session — and every team downstream was quietly building its own guess at who these belonged to.</p>
+  <div class="callout">The fix is not a new team-specific tool. It is a shared identity layer — a Person ID — that the CDP, the Rep App, and the Marketing platform all key off. Get this right once, and three products stop disagreeing with each other.</div>
+  <div class="diagram">
+    <span class="node">Segment Identity Resolution</span><br>
+    <span class="arrow">↓ sync job (match by email / device / ID)</span><br>
+    <span class="node">Person ID stored in TRR</span><br>
+    <span class="arrow">↓</span><br>
+    <span class="node">Customer 360 Identity API</span><br>
+    <span class="arrow">↓ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</span><br>
+    <span class="node">CDP (signals, decisions)</span> &nbsp;&nbsp; <span class="node">Rep App</span> &nbsp;&nbsp; <span class="node">Marketing Platform</span>
+  </div>
+
+  <h2 id="part2">Part 2 — CDP: the decision engine (recap)</h2>
+  <span class="section-badge cdp">CDP</span>
+  <p>Unchanged in purpose: given everything known about a person right now, decide what should happen, and be able to explain why. Identity, signals, model outputs, eligibility rules, and explainability — see the prototype's CDP screens for the full detail. What changes is the key: every screen now reads and writes against <code>person_id</code>, not a single account ID.</p>
+
+  <h2 id="part3">Part 3 — Identity Layer: Customer 360 Identity API</h2>
+  <span class="section-badge identity">IDENTITY</span>
+  <h3>Problem</h3>
+  <p>TRR stores multiple identities for the same person — different emails, phones, user IDs, devices — with no consistent way to merge or surface them. Reps see fragments. Marketing sends duplicates. Models miscalculate LTV, AOV, and churn because they are scored per-account instead of per-person.</p>
+  <h3>What it does</h3>
+  <ul>
+    <li>Accepts any identifier (TRR user ID, email, phone, or in future a device ID)</li>
+    <li>Returns a unified Person ID plus the full graph of linked identities</li>
+    <li>Sources merges from Segment's Identity Resolution, synced into TRR on a scheduled job</li>
+  </ul>
+  <div class="code-block">GET /identity/lookup?identifier=jordyn@resellerco.com
+
+{
+  "person_id": "PER-4471",
+  "identities": {
+    "trr_ids": ["88213", "90441"],
+    "emails": ["jordyn@gmail.com", "jordyn@resellerco.com"],
+    "phones": ["+1-222-333-4444"]
+  },
+  "match_confidence": 0.94,
+  "source": "Segment",
+  "last_updated": "2026-07-14T09:14:00Z"
+}</div>
+  <h3>Non-functional requirements</h3>
+  <table>
+    <tr><th>Requirement</th><th>Target</th></tr>
+    <tr><td>Latency</td><td>&lt; 200ms at p95</td></tr>
+    <tr><td>Uptime</td><td>99.9%</td></tr>
+    <tr><td>Data freshness</td><td>Near real-time sync from Segment</td></tr>
+    <tr><td>Privacy</td><td>GDPR &amp; CCPA compliant; all lookups logged for audit</td></tr>
+  </table>
+  <h3>Open risks, called out explicitly</h3>
+  <ul>
+    <li><b>Mismatches:</b> Segment can incorrectly merge two people who share a device or email alias. Match confidence is surfaced everywhere identity is shown, not hidden as a backend detail.</li>
+    <li><b>Un-merging:</b> Segment can later split a profile it previously merged. v1 re-syncs nightly and flags recently-split people; it does not retroactively correct historical reports.</li>
+    <li><b>Privacy:</b> merging a personal and a business account raises real data-boundary questions — e.g. a rep should not see private personal purchase history bleeding into a business context without cause. This needs a privacy/legal review before broad rollout, not just an engineering sign-off.</li>
+  </ul>
+
+  <h2 id="part4">Part 4 — Rep App</h2>
+  <span class="section-badge rep">REP APP</span>
+  <h3>Problem</h3>
+  <p>A rep who searches one email only sees one account — missing the rest of the relationship. That means slower case handling, duplicate outreach, and reps making decisions on incomplete information.</p>
+  <h3>User stories</h3>
+  <div class="story"><b>As a rep,</b> I want to search using any identifier — email, phone, or TRR ID — so I can find the customer regardless of which account they used.</div>
+  <div class="story"><b>As a rep,</b> I want to see every linked account for a person in one place, so I understand their full relationship with TRR before I engage.</div>
+  <div class="story"><b>As a rep,</b> I want person-level totals (lifetime spend, orders, consignments), so I can prioritize and personalize the conversation.</div>
+  <div class="story"><b>As a rep,</b> I want a clear message when identity cannot be confidently resolved, so I know to treat two accounts separately rather than guess.</div>
+  <div class="story"><b>As a rep,</b> I want to log an interaction against a person, so future reps and models see it as new signal, not just a note.</div>
+  <h3>Non-goals for v1</h3>
+  <div class="pill-row">
+    <span class="pill bad">No case management / ticketing (existing CX tool owns this)</span>
+    <span class="pill bad">No automatic model retraining from rep feedback in v1</span>
+  </div>
+
+  <h2 id="part5">Part 5 — Marketing Intelligence Platform</h2>
+  <span class="section-badge marketing">MARKETING</span>
+  <h3>Problem</h3>
+  <p>Marketing today builds segments inside each channel tool separately (ESP, ad platforms, SMS), which means logic drifts, suppression is inconsistent, and nobody can say for certain that a "high-value" audience in email matches the one in paid social.</p>
+  <h3>What it does</h3>
+  <ul>
+    <li><b>Audience Builder</b> — combine CDP signals, model scores, and consent flags into a rule (e.g. propensity &gt; 0.70 AND consented AND NOT suppressed), with a live count as the rule changes</li>
+    <li><b>Audience Library</b> — every saved audience, its size, its criteria, and where it is synced</li>
+    <li><b>Channel Sync</b> — push a saved audience to one or more channels (email/ESP, Meta Ads, Google Ads, SMS), with per-channel match rates and sync history</li>
+  </ul>
+  <h3>Why this is different from segments built inside a channel tool</h3>
+  <p>Because audiences are built directly on CDP signals and the identity layer, they are person-level (deduplicated across linked accounts) and consent-aware by construction — an audience cannot include someone the CDP has already suppressed, and it does not need separate logic per channel to stay that way.</p>
+  <h3>Non-goals for v1</h3>
+  <div class="pill-row">
+    <span class="pill bad">No campaign creative or email building</span>
+    <span class="pill bad">No A/B testing or attribution modeling (Phase 2+)</span>
+    <span class="pill bad">No real-time (sub-hour) sync in v1</span>
+  </div>
+
+  <h2 id="part6">Part 6 — Revised phasing</h2>
+  <div class="phase-grid">
+    <div class="phase-card"><div class="num">PHASE 1</div><b>Foundation</b><ul><li>CDP: identity, signals, model outputs (read-only)</li><li>Identity API: lookup + linked accounts</li></ul></div>
+    <div class="phase-card"><div class="num">PHASE 2</div><b>Decisioning &amp; first surfaces</b><ul><li>CDP: eligibility rules, priority logic</li><li>Rep App: search + unified profile</li><li>Marketing: Audience Builder</li></ul></div>
+    <div class="phase-card"><div class="num">PHASE 3</div><b>Scale &amp; trust</b><ul><li>CDP: explainability, decision logs</li><li>Rep App: escalation handling, interaction logging</li><li>Marketing: multi-channel sync, sync monitoring</li></ul></div>
+  </div>
+  <div class="metric-list">
+    <div class="metric-item">Rep App: ↓30% duplicate lookups, ↓20% case handling time</div>
+    <div class="metric-item">Marketing: ↓ duplicate sends, ↑ targeting precision</div>
+    <div class="metric-item">DS: ↑ model accuracy from person-level features</div>
+    <div class="metric-item">Platform: % of teams reading from CDP vs. building their own logic</div>
+  </div>
+  <p>Each phase still stands alone and ships value on its own — the identity layer just means Phase 2's Rep App and Marketing work do not have to solve identity resolution themselves, because Phase 1 already did.</p>
+</div>
+</body>
+</html>
