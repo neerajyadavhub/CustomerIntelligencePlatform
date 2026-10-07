@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.db
+persongraph-api/server.log
+persongraph-api/server.pid
+.env

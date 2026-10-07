@@ -1,39 +1,89 @@
-# Smart Engine CDP: Turning a Stalled Approval Into a Clear Product Line
+# Case Study: Smart Engine — a shared identity layer for CDP, sales, and marketing
 
-**Role:** Product Manager
-**Artifacts:** [Interactive prototype](./index.html) · [Full PRD](./prd.html)
+**Role:** Product Manager (solo, end-to-end — PRD, UX, and reference engineering)
+**Timeline:** Prototype built over several iterations, from single-feature demo to a three-app platform with a working backend.
 
-## The problem
+## Problem
 
-I was leading the PRD and architecture for "Smart Engine," a system meant to turn customer data into smart, personalized actions for a cross-functional group — Marketing, CX, Sales, Buyers/Ops, and Data Science.
+Three teams at a growing e-commerce/resale business each needed to know
+"who is this customer," and each solved it differently:
 
-The plan kept stalling in approval. Digging into why, the issue wasn't the vision — it was one specific phase: a "CDP" (Customer Data Platform) that every reviewer nodded along to but couldn't actually picture. It read as a black box between "we have data" and "smart things happen," which made the whole multi-phase plan feel bloated and hard to greenlight.
+- **Lifecycle/CRM** sent reactivation offers based on whatever signals
+  it had locally — sometimes to customers who'd already converted on a
+  different account, or who should have been suppressed.
+- **Sales/concierge reps** fielded calls from high-value customers but
+  had to manually cross-reference personal and business accounts to see
+  full purchase history, costing time on every call and risking a
+  disjointed experience for the customer.
+- **Marketing** built audiences from exports and spreadsheets, with no
+  shared source of truth for who belonged in a segment or why, and no
+  visibility into real match rates once an audience hit an ad channel.
 
-## My approach
+None of these were engineering problems in isolation — they were the
+same problem, solved three times, with three incompatible answers.
 
-**1. Reframed the CDP as a concrete decision layer, not an infrastructure phase.**
-Instead of describing it as a data platform, I defined it by the one question it answers for every team: *given everything we know about a customer right now, what should we do — and why?* That single framing made it obvious the CDP wasn't optional plumbing — it was the thing preventing five teams from quietly building five different, conflicting versions of the same logic.
+## Approach
 
-**2. Scoped it against explicit non-goals.**
-The fastest way to stall approval on a platform concept is to let it sound infinite. I paired every capability with what it explicitly would *not* do (no campaign builder, no BI replacement, no per-channel custom logic), which made the ask feel bounded and lower-risk.
+Rather than fixing each team's tool separately, I proposed a shared
+**identity-resolution layer**: every known identifier (email, phone,
+external account ID) resolves to one canonical Person ID, and every
+downstream product — CDP, Rep App, Marketing — reads from and writes to
+that same graph instead of maintaining its own partial view.
 
-**3. Split delivery into three phases that each stand alone.**
-Read-only customer context first, then eligibility and decisioning, then explainability and governance — so the roadmap read as sequenced value, not one large bet.
+I wrote the PRD in parts rather than as one flat document — an identity
+layer section all three teams' requirements reference, then a dedicated
+section per product — so each team's stakeholders could review their
+part without wading through the others, while the identity contract
+stayed the single source of truth everyone built against.
 
-**4. Built a clickable prototype instead of relying on the doc alone.**
-A PRD can describe explainability; it can't make a reviewer *feel* what "why was this customer included" looks like in a real interface. I built a guided-tour prototype covering Customer 360, model outputs, the decision/eligibility layer, activation, and a full explainability drill-down — with a live "decision ledger" showing individual decisions streaming through with their reasoning attached.
+To de-risk the design before asking for engineering investment, I built
+a working reference implementation myself:
 
-## The outcome
+- An interactive, click-through **prototype** of all three apps sharing
+  one identity layer and one "Decision Ledger" showing every automated
+  decision's reasoning in real time — so stakeholders could *see* the
+  behavior, not just read about it.
+- A real, tested **backend** (PersonGraph API) implementing identity
+  resolution, a rules-based decision engine, and audience segmentation
+  — not a mockup, but working code with a swappable resolver interface
+  so a real identity provider (e.g. Segment) can be dropped in later
+  without touching the rest of the system.
+- The prototype wired to the live backend, with graceful fallback to
+  realistic static data when the backend isn't reachable — so the demo
+  works equally well in a hallway conversation or a sandboxed review.
 
-- The CDP stopped being the phase nobody could explain and became the anchor that made the rest of the roadmap make sense to stakeholders.
-- The three-phase structure gave engineering, DS, and ops a shared, concrete scope to size instead of an abstract platform ask.
-- The prototype gave non-technical reviewers a tangible way to react to the decisioning and explainability model before a line of production code was written — surfacing feedback (like the conflict-resolution priority order) earlier and more cheaply than a written spec would have.
+## Key decisions
 
-## What this demonstrates
+- **Suppression always overrides the model.** Early in design, a high
+  propensity-to-convert score could still produce an offer to a
+  suppressed customer if the rules weren't explicit about precedence.
+  I made suppression a hard override in the decision engine and logged
+  every such conflict explicitly, rather than letting it fail silently.
+- **Decisions are explainable by default.** Every automated decision
+  records which rule fired, the model and version used, and a
+  human-readable reason — because compliance and marketing ops both
+  needed to audit *why*, not just *what*.
+- **One identity contract, three consumers.** The Rep App and Marketing
+  Platform never implement their own matching logic — they call the
+  same `GET /identity/lookup` the CDP uses, so identity logic changes
+  once and propagates everywhere.
+- **Swappable, not hardcoded, integrations.** The identity resolver and
+  the decision engine are both built behind small interfaces so a real
+  Segment connection or a new eligibility rule can be added without
+  rewriting the apps that consume them.
 
-- Translating a stalled, ambiguous platform ask into a scoped, phased product.
-- Designing for cross-functional trust — explainability as a first-class requirement, not an afterthought.
-- Using a working prototype, not just a document, to de-risk a decision before engineering investment.
+## Outcome
 
----
-*All customer data shown in the prototype is fictional, generated for demonstration purposes.*
+A fully working, three-app reference platform:
+
+- An interactive demo covering 11 views across CDP, Rep App, and
+  Marketing, usable standalone or live-wired to a real backend.
+- A tested FastAPI backend with identity resolution, decisioning, and
+  audience/activation logic, deployable via Docker to any standard host.
+- A PRD structured so each team can review its own requirements against
+  one shared identity contract, rather than three disconnected specs.
+
+This project demonstrates end-to-end product ownership — from framing a
+cross-team problem, to writing requirements that scale across products,
+to building and testing the reference system myself to prove the design
+before asking anyone else to commit engineering time to it.
