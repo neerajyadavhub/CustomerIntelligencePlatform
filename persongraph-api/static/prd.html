@@ -94,7 +94,8 @@ footer{max-width:900px; margin:0 auto; padding:0 24px 60px; color:var(--text-dim
       <li><a href="#part3">3. Identity API contract</a></li>
       <li><a href="#part4">4. Rep App requirements</a></li>
       <li><a href="#part5">5. Marketing Intelligence requirements</a></li>
-      <li><a href="#part6">6. Roadmap</a></li>
+      <li><a href="#part6">6. Measurement &amp; reporting</a></li>
+      <li><a href="#part7">7. Roadmap</a></li>
     </ol>
   </div>
 
@@ -235,6 +236,39 @@ footer{max-width:900px; margin:0 auto; padding:0 24px 60px; color:var(--text-dim
   <!-- PART 6 -->
   <section class="part" id="part6">
     <div class="part-badge">PART 6</div>
+    <h2>Measurement &amp; reporting</h2>
+    <p class="part-sub">Close the loop: once an audience is synced to a channel, bring its performance back into Smart Engine instead of leaving it siloed in each platform's own dashboard.</p>
+
+    <h3>User stories</h3>
+    <ul>
+      <li>As a marketer, I want to see how an audience performed after I synced it — impressions, clicks, spend, conversions, ROAS — without opening Meta Ads Manager, Google Ads, and the ESP separately and reconciling three different numbers.</li>
+      <li>As a marketer, I want performance broken out by channel, so I know which channel is actually driving results for a given audience rather than looking at one blended number.</li>
+      <li>As a PM or marketing lead, I want a trend over time, not just a lifetime total, so I can see whether a campaign is accelerating, flat, or fading.</li>
+    </ul>
+
+    <h3>Why this lives here instead of in each channel's own dashboard</h3>
+    <p>Meta Ads Manager and Google Analytics already report on performance — but only for that one channel, and only in terms of their own campaign IDs, not the Person IDs this platform already resolved. The thing a platform-native dashboard can't do is tie a Meta impression and an email open back to the same Person ID the identity layer resolved in Part 1, or report on performance for an audience that was synced to more than one channel at once. That's the gap this part fills: not a replacement for Meta/Google's own reporting, but one rollup, keyed to Smart Engine's own audiences, that those platforms can't produce on their own.</p>
+
+    <h3>Requirements</h3>
+    <table>
+      <tr><th>#</th><th>Requirement</th><th>Priority</th></tr>
+      <tr><td>MS1</td><td>Every channel sync is measurable: once an audience is synced, performance data starts flowing without any extra setup step.</td><td><span class="badge red">P0</span></td></tr>
+      <tr><td>MS2</td><td>A performance summary per audience: total impressions, clicks, spend, conversions, revenue, and the derived rates (CTR, CPA, ROAS) that marketers actually make decisions on, not just raw counts.</td><td><span class="badge red">P0</span></td></tr>
+      <tr><td>MS3</td><td>A daily trend, not just a lifetime total — spend and revenue over time at minimum, so a campaign's trajectory is visible, not just its cumulative result.</td><td><span class="badge red">P0</span></td></tr>
+      <tr><td>MS4</td><td>A per-channel breakdown when an audience is synced to more than one channel, so performance isn't blended into one number that hides which channel is actually working.</td><td><span class="badge amber">P1</span></td></tr>
+      <tr><td>MS5</td><td>Metrics refresh on a schedule from each channel's own reporting API (a real provider), not a one-time snapshot — platforms commonly revise same-day numbers for 24-72 hours after the fact.</td><td><span class="badge teal">P2 — mocked in current prototype</span></td></tr>
+      <tr><td>MS6</td><td>Attribution back to the Person ID: which specific resolved people converted, not just an aggregate count — the thing a channel-native dashboard structurally can't do.</td><td><span class="badge teal">P2 — not in current prototype</span></td></tr>
+    </table>
+
+    <div class="card">
+      <div class="card-title">GET /audience/{id}/performance — current prototype</div>
+      <p style="margin:0;">Returns a summary (impressions, clicks, spend, conversions, revenue, CTR, CPA, ROAS), a per-channel breakdown, and a daily timeseries, aggregated across every channel the audience has been synced to. In this prototype, a <code>MockMetricsProvider</code> generates a realistic 14-day performance curve immediately after a sync — the same swappable-provider pattern as identity resolution (Part 3): a real deployment implements <code>MetaInsightsProvider</code>/a Google Ads equivalent against each channel's actual reporting API without touching any other code.</p>
+    </div>
+  </section>
+
+  <!-- PART 7 -->
+  <section class="part" id="part7">
+    <div class="part-badge">PART 7</div>
     <h2>Roadmap</h2>
     <p class="part-sub">Three phases from reference implementation to production-ready platform.</p>
 
@@ -243,8 +277,8 @@ footer{max-width:900px; margin:0 auto; padding:0 24px 60px; color:var(--text-dim
         <div class="phase-num">PHASE 1</div>
         <h4>Reference implementation</h4>
         <ul>
-          <li>Identity, decision, and audience engines as a working API (this prototype)</li>
-          <li>Mock resolver with seeded demo data</li>
+          <li>Identity, decision, audience, and measurement engines as a working API (this prototype)</li>
+          <li>Mock resolver and mock metrics provider with seeded demo data</li>
           <li>Three-app frontend wired to live endpoints</li>
         </ul>
       </div>
@@ -254,6 +288,7 @@ footer{max-width:900px; margin:0 auto; padding:0 24px 60px; color:var(--text-dim
         <ul>
           <li>Swap mock resolver for a real Segment (or equivalent CDP) Profile API connection</li>
           <li>Real channel sync (Meta Conversions API, Google Customer Match, ESP)</li>
+          <li>Real measurement pull from each channel's reporting API, replacing the mock metrics provider</li>
           <li>Auth, multi-tenancy, and role-based access for reps vs. marketers vs. admins</li>
         </ul>
       </div>

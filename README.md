@@ -9,7 +9,8 @@ one resolved **Person ID** feeding three products —
   one unified profile even if they've shopped under more than one
   account, with a suggested talking point.
 - **Marketing Intelligence** — build an audience from signals/scores,
-  preview its size, and sync it to a channel.
+  preview its size, sync it to a channel, and measure how it performed
+  after — impressions, spend, conversions, ROAS, by channel and over time.
 
 Live demo: **https://neerajyadavhub.github.io/CustomerIntelligencePlatform/**
 
@@ -126,7 +127,10 @@ on a different port.
 - **Rep App** — search for `jordyn` (or her email/phone) and open her
   unified profile — note the three linked identities.
 - **Marketing** — build an audience (e.g. propensity > 0.7), run it
-  live, and sync it to a channel to see the match-rate behavior.
+  live, and sync it to a channel to see the match-rate behavior. Then
+  open **Measurement** and click "Load from live API" to see that same
+  audience's post-sync performance — impressions, spend, conversions,
+  ROAS, broken out by channel and over time.
 
 ## Status & provenance
 

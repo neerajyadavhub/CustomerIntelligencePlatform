@@ -6,8 +6,10 @@ Identity      — one linked account/identifier belonging to a Person
 Signal        — a raw behavioral/attribute signal, keyed by person
 ModelScore    — a model output (propensity, churn risk, etc.), keyed by person
 Decision      — a logged eligibility/activation decision, with its full reasoning trace
-Audience      — a saved, rule-based audience definition
-ChannelSync   — a sync event of an Audience to an external channel
+Audience          — a saved, rule-based audience definition
+ChannelSync       — a sync event of an Audience to an external channel
+PerformanceMetric — one day of channel performance for a ChannelSync,
+                    populated by a MetricsProvider (measurement_engine.py)
 """
 import uuid
 import datetime as dt
@@ -118,3 +120,23 @@ class ChannelSync(Base):
     synced_at = Column(DateTime, default=dt.datetime.utcnow)
 
     audience = relationship("Audience", back_populates="syncs")
+    metrics = relationship("PerformanceMetric", back_populates="sync", cascade="all, delete-orphan")
+
+
+class PerformanceMetric(Base):
+    """One day of channel performance for a single ChannelSync (one
+    audience pushed to one channel). Written by a MetricsProvider — see
+    measurement_engine.py — either backfilled immediately in the mock
+    provider, or pulled on a schedule from the real channel's reporting
+    API once that's wired up."""
+    __tablename__ = "performance_metrics"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sync_id = Column(Integer, ForeignKey("channel_syncs.id"), nullable=False)
+    date = Column(DateTime, nullable=False)
+    impressions = Column(Integer, default=0)
+    clicks = Column(Integer, default=0)
+    spend = Column(Float, default=0.0)
+    conversions = Column(Integer, default=0)
+    revenue = Column(Float, default=0.0)
+
+    sync = relationship("ChannelSync", back_populates="metrics")

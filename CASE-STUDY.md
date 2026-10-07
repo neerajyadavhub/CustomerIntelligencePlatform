@@ -16,8 +16,11 @@ Three teams at a growing e-commerce/resale business each needed to know
   full purchase history, costing time on every call and risking a
   disjointed experience for the customer.
 - **Marketing** built audiences from exports and spreadsheets, with no
-  shared source of truth for who belonged in a segment or why, and no
-  visibility into real match rates once an audience hit an ad channel.
+  shared source of truth for who belonged in a segment or why, no
+  visibility into real match rates once an audience hit an ad channel,
+  and no way to see how that audience actually performed afterward
+  without logging into each channel's dashboard separately and manually
+  reconciling the numbers.
 
 None of these were engineering problems in isolation — they were the
 same problem, solved three times, with three incompatible answers.
@@ -44,9 +47,10 @@ a working reference implementation myself:
   decision's reasoning in real time — so stakeholders could *see* the
   behavior, not just read about it.
 - A real, tested **backend** (PersonGraph API) implementing identity
-  resolution, a rules-based decision engine, and audience segmentation
-  — not a mockup, but working code with a swappable resolver interface
-  so a real identity provider (e.g. Segment) can be dropped in later
+  resolution, a rules-based decision engine, audience segmentation, and
+  post-activation measurement — not a mockup, but working code with
+  swappable provider interfaces so a real identity source (e.g. Segment)
+  and real channel reporting APIs (Meta, Google) can be dropped in later
   without touching the rest of the system.
 - The prototype wired to the live backend, with graceful fallback to
   realistic static data when the backend isn't reachable — so the demo

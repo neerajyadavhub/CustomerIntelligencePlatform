@@ -110,3 +110,41 @@ class ChannelSyncOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class PerformancePoint(BaseModel):
+    date: dt.datetime
+    channel: str
+    impressions: int
+    clicks: int
+    spend: float
+    conversions: int
+    revenue: float
+
+
+class ChannelBreakdown(BaseModel):
+    channel: str
+    impressions: int
+    clicks: int
+    spend: float
+    conversions: int
+    revenue: float
+    ctr: float
+    cpa: float
+    roas: float
+
+
+class AudiencePerformanceSummary(BaseModel):
+    audience_id: str
+    audience_name: str
+    channels: List[str]
+    impressions: int
+    clicks: int
+    spend: float
+    conversions: int
+    revenue: float
+    ctr: float
+    cpa: float
+    roas: float
+    by_channel: List[ChannelBreakdown]
+    timeseries: List[PerformancePoint]

@@ -20,9 +20,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from . import models, schemas, decision_engine, audience_engine
+from . import models, schemas, decision_engine, audience_engine, measurement_engine
 from .database import Base, engine, get_db
 from .identity_resolver import get_resolver
+from .measurement_engine import get_metrics_provider
 
 Base.metadata.create_all(bind=engine)
 
@@ -40,6 +41,7 @@ app.add_middleware(
 )
 
 resolver = get_resolver()
+metrics_provider = get_metrics_provider()
 
 
 @app.get("/health", tags=["meta"])
@@ -187,9 +189,64 @@ def sync_audience(audience_id: str, req: schemas.ChannelSyncRequest, db: Session
     db.add(sync)
     db.commit()
     db.refresh(sync)
+
+    # Kick off performance measurement for this sync. The mock provider
+    # backfills a realistic 14-day curve immediately; a real provider
+    # would instead record the external campaign id here and let a
+    # scheduled pull_latest() populate it over time.
+    metrics_provider.backfill(db, sync)
+
     return sync
 
 
 @app.get("/audience/{audience_id}/syncs", response_model=list[schemas.ChannelSyncOut], tags=["audience"])
 def list_syncs(audience_id: str, db: Session = Depends(get_db)):
     return db.query(models.ChannelSync).filter(models.ChannelSync.audience_id == audience_id).all()
+
+
+# ------------------------------------------------------------- performance
+@app.get("/audience/{audience_id}/performance", response_model=schemas.AudiencePerformanceSummary, tags=["measurement"])
+def audience_performance(audience_id: str, db: Session = Depends(get_db)):
+    """Post-activation measurement: every channel this audience has been
+    synced to, rolled up into one summary plus a daily timeseries — the
+    Amplitude/GA-style view of 'how did this audience actually perform.'"""
+    audience = db.query(models.Audience).filter(models.Audience.id == audience_id).first()
+    if not audience:
+        raise HTTPException(status_code=404, detail="Audience not found.")
+
+    syncs = db.query(models.ChannelSync).filter(models.ChannelSync.audience_id == audience_id).all()
+    all_metrics = []
+    timeseries = []
+    by_channel_metrics = {}
+    for sync in syncs:
+        metrics_provider.pull_latest(db, sync)  # no-op for the mock; refreshes a real provider
+        rows = (
+            db.query(models.PerformanceMetric)
+            .filter(models.PerformanceMetric.sync_id == sync.id)
+            .order_by(models.PerformanceMetric.date)
+            .all()
+        )
+        all_metrics.extend(rows)
+        by_channel_metrics.setdefault(sync.channel, []).extend(rows)
+        for m in rows:
+            timeseries.append(schemas.PerformancePoint(
+                date=m.date, channel=sync.channel, impressions=m.impressions,
+                clicks=m.clicks, spend=m.spend, conversions=m.conversions,
+                revenue=m.revenue,
+            ))
+    timeseries.sort(key=lambda p: p.date)
+
+    overall = measurement_engine.summarize(all_metrics)
+    by_channel = [
+        schemas.ChannelBreakdown(channel=ch, **measurement_engine.summarize(rows))
+        for ch, rows in by_channel_metrics.items()
+    ]
+
+    return schemas.AudiencePerformanceSummary(
+        audience_id=audience.id,
+        audience_name=audience.name,
+        channels=sorted(by_channel_metrics.keys()),
+        timeseries=timeseries,
+        by_channel=by_channel,
+        **overall,
+    )

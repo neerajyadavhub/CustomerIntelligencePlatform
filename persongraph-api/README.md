@@ -18,6 +18,11 @@ Person ID. This is the reference backend for the Smart Engine prototype
 - **Audience engine** — build an audience from ANDed conditions over
   signals/scores, preview the matched count, and "sync" it to a channel
   (mocked — see below).
+- **Measurement engine** — once an audience is synced to a channel, pull
+  back its performance (impressions, clicks, spend, conversions, revenue)
+  and roll it up per audience and per channel, with a daily trend — the
+  "what happened after we activated this" view a channel-native dashboard
+  can't give you across multiple channels at once.
 
 ## What this is not
 
@@ -25,6 +30,9 @@ Person ID. This is the reference backend for the Smart Engine prototype
 - No billing.
 - No real channel integrations yet — `POST /audience/{id}/sync` mocks a
   92% match rate rather than calling Meta/Google/an ESP.
+- No real measurement pull yet — `MockMetricsProvider` generates a
+  realistic-looking performance curve rather than calling Meta's
+  Insights API or Google Ads' reporting API.
 - `RESOLVER_MODE=segment` is a stub with `TODO`s, not a working Segment
   integration — see "Swapping in a real identity provider" below.
 
@@ -59,7 +67,9 @@ persongraph-api/
     identity_resolver.py IdentityResolver interface + Mock/Segment impls
     decision_engine.py   Eligibility rules + ACTION_RULES registry
     audience_engine.py   Audience rule evaluation
-    seed.py              Demo data (4 people, identities, signals, scores)
+    measurement_engine.py MetricsProvider interface + Mock/Meta impls
+    seed.py              Demo data (4 people, a synced demo audience,
+                          and 14 days of performance history)
   static/                Optional — see "Combined single-URL deploy" below
   requirements.txt
   Dockerfile
@@ -78,8 +88,9 @@ persongraph-api/
 | POST | `/audience` | Create an audience from a rule |
 | GET | `/audience` | List saved audiences |
 | GET | `/audience/{id}/preview` | Matched count + sample Person IDs |
-| POST | `/audience/{id}/sync` | Mock-sync an audience to a channel |
+| POST | `/audience/{id}/sync` | Mock-sync an audience to a channel (auto-backfills 14 days of mock performance) |
 | GET | `/audience/{id}/syncs` | Sync history for an audience |
+| GET | `/audience/{id}/performance` | Rolled-up performance (summary, per-channel breakdown, daily timeseries) |
 
 ## Configuration
 
@@ -90,6 +101,11 @@ Copy `.env.example` to `.env` and adjust:
 - `RESOLVER_MODE` — `mock` (default, uses seeded local data) or
   `segment` (stub — needs the TODOs in `identity_resolver.py` finished).
 - `SEGMENT_API_KEY`, `SEGMENT_SPACE_ID` — only used by the Segment resolver.
+- `METRICS_MODE` — `mock` (default, generates a realistic performance
+  curve) or `meta` (stub — needs the TODOs in `measurement_engine.py`
+  finished, plus `META_ACCESS_TOKEN`/`META_AD_ACCOUNT_ID` below).
+- `META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID` — only used by the Meta
+  Insights provider.
 
 ## Deploying (Render, Railway, Fly.io — any Docker host)
 
@@ -138,6 +154,23 @@ TODOs (an API call to Segment's Profile API, mapping the response onto
 the same `Person`/`Identity` shape) and switch `RESOLVER_MODE=segment`
 to go live without changing any other code, since every route calls
 `get_resolver()` rather than a concrete class.
+
+## Swapping in a real measurement provider
+
+`app/measurement_engine.py` defines `MetricsProvider`, the same kind of
+small interface as `IdentityResolver`: `backfill(db, sync)` (called once
+right after a sync) and `pull_latest(db, sync)` (called on a schedule to
+refresh recent days). `MockMetricsProvider` is the default — it generates
+a plausible 14-day curve from the sync's own `matched_count` so the
+dashboard has real-looking numbers with no external credentials. To go
+live, finish `MetaInsightsProvider` (or write an equivalent for Google
+Ads/your ESP) against that channel's real reporting API — the module's
+docstring spells out the call pattern, including the one thing a real
+`sync()` has to do differently from today's mock: store the external
+campaign/ad-set id the channel hands back, since that's what the
+reporting API is queried by. Switch `METRICS_MODE=meta` once implemented;
+every route calls `get_metrics_provider()` rather than a concrete class,
+so nothing else changes.
 
 ## A note on provenance
 

@@ -460,6 +460,65 @@ tr:last-child td{border-bottom:none;}
         </div>
       </div>
 
+      <div class="view" id="v-mk-measure" data-app="marketing">
+        <div class="view-head">
+          <div class="view-eyebrow">04 · MEASUREMENT</div>
+          <h1 class="view-title">Campaign Performance</h1>
+          <p class="view-desc">What happened after this audience went live — impressions, spend, and return, pulled back from each synced channel into one view.</p>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Audience <span class="tag" id="measureApiTag">demo data</span></div>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <select id="measureAudienceSelect" style="flex:1; min-width:200px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-size:13px; font-family:'Inter',sans-serif; background:var(--card); color:var(--text);">
+              <option value="">Q3 Reactivation (demo)</option>
+            </select>
+            <button class="save-btn" style="background:var(--teal-soft); color:var(--teal);" onclick="loadLiveMeasurement()">⚡ Load from live API</button>
+          </div>
+        </div>
+
+        <div class="grid grid-4" style="margin-bottom:16px;">
+          <div class="card act-card">
+            <div class="act-icon">👁</div>
+            <div class="act-stat" id="measImpressions">945,472</div>
+            <div class="act-label">Impressions</div>
+          </div>
+          <div class="card act-card">
+            <div class="act-icon">🖱</div>
+            <div class="act-stat" id="measClicks">14,096</div>
+            <div class="act-label" id="measCtrLabel">Clicks · 1.49% CTR</div>
+          </div>
+          <div class="card act-card">
+            <div class="act-icon">$</div>
+            <div class="act-stat" id="measSpend">$13,797</div>
+            <div class="act-label" id="measCpaLabel">Spend · $13.55 CPA</div>
+          </div>
+          <div class="card act-card">
+            <div class="act-icon">↗</div>
+            <div class="act-stat" id="measRoas">11.5x</div>
+            <div class="act-label" id="measRoasLabel">ROAS · $158,004 revenue</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Spend vs. Revenue <span class="tag">last 14 days</span></div>
+          <svg id="measureChart" viewBox="0 0 760 220" style="width:100%; height:auto; display:block;"></svg>
+          <div style="display:flex; gap:16px; font-size:11.5px; color:var(--text-dim); margin-top:10px;">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#1C8C7C;margin-right:5px;"></span>Spend</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#E8A33D;margin-right:5px;"></span>Revenue</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">By channel</div>
+          <table id="measureChannelTable">
+            <tr><th>Channel</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>Spend</th><th>Conversions</th><th>ROAS</th></tr>
+            <tr><td>Meta Ads</td><td class="mono">451,957</td><td class="mono">6,389</td><td class="mono">1.41%</td><td class="mono">$6,658</td><td class="mono">516</td><td class="mono">11.3x</td></tr>
+            <tr><td>Email</td><td class="mono">493,515</td><td class="mono">7,707</td><td class="mono">1.56%</td><td class="mono">$7,140</td><td class="mono">502</td><td class="mono">11.6x</td></tr>
+          </table>
+        </div>
+      </div>
+
     </div>
 
     <div id="ledger">
@@ -477,7 +536,7 @@ tr:last-child td{border-bottom:none;}
     <div class="apps-list">
       <div><b>CDP</b> Signals, decisions, and explainability.</div>
       <div><b>Rep App</b> Search any identifier, see the whole person.</div>
-      <div><b>Marketing</b> Build audiences from CDP signals, sync to any channel.</div>
+      <div><b>Marketing</b> Build audiences, sync to any channel, and measure what happened after.</div>
     </div>
     <div class="row">
       <button class="btn-secondary" id="introExplore">Explore on my own</button>
@@ -597,10 +656,126 @@ async function runLiveAudience(){
   }catch(e){ labelEl.textContent = 'Could not reach live API — showing demo figure instead'; }
 }
 
+const CHANNEL_LABELS = {meta_ads:'Meta Ads', google_ads:'Google Ads', email:'Email', sms:'SMS'};
+const DEMO_MEASURE_DAYS = [
+  {day:'Sep 23', spend:308,  revenue:4092},
+  {day:'Sep 24', spend:423,  revenue:5200},
+  {day:'Sep 25', spend:771,  revenue:8137},
+  {day:'Sep 26', spend:1043, revenue:20298},
+  {day:'Sep 27', spend:1588, revenue:16336},
+  {day:'Sep 28', spend:1049, revenue:12773},
+  {day:'Sep 29', spend:1461, revenue:17137},
+  {day:'Sep 30', spend:907,  revenue:9328},
+  {day:'Oct 1',  spend:805,  revenue:16299},
+  {day:'Oct 2',  spend:1408, revenue:15211},
+  {day:'Oct 3',  spend:1228, revenue:6947},
+  {day:'Oct 4',  spend:1055, revenue:14976},
+  {day:'Oct 5',  spend:1084, revenue:4633},
+  {day:'Oct 6',  spend:669,  revenue:6638},
+];
+
+function aggregateByDay(timeseries){
+  const map = {};
+  timeseries.forEach(p=>{
+    const day = new Date(p.date).toISOString().slice(0,10);
+    if(!map[day]) map[day] = {day, spend:0, revenue:0};
+    map[day].spend += p.spend;
+    map[day].revenue += p.revenue;
+  });
+  return Object.keys(map).sort().map(k=>{
+    const d = map[k];
+    return {day: new Date(k).toLocaleDateString('en-US', {month:'short', day:'numeric', timeZone:'UTC'}), spend:d.spend, revenue:d.revenue};
+  });
+}
+
+function renderMeasureChart(days){
+  const svg = document.getElementById('measureChart');
+  if(!days || !days.length){ svg.innerHTML = ''; return; }
+  const W=760, H=220, padL=54, padR=16, padT=16, padB=28;
+  const maxVal = Math.max(1, ...days.map(d=>Math.max(d.spend, d.revenue)));
+  const stepX = days.length > 1 ? (W-padL-padR) / (days.length-1) : 0;
+  const x = i => padL + i*stepX;
+  const y = v => (H-padB) - (v/maxVal)*(H-padT-padB);
+  const pathFor = key => days.map((d,i)=> (i===0?'M':'L') + x(i).toFixed(1) + ',' + y(d[key]).toFixed(1)).join(' ');
+
+  const gridLines = [0, 0.5, 1].map(frac=>{
+    const val = maxVal*frac;
+    const yy = y(val);
+    return `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}" stroke="#DFE3EC" stroke-width="1"/>
+            <text x="${padL-8}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="9.5" fill="#5B6478" font-family="IBM Plex Mono, monospace">$${Math.round(val/1000)}k</text>`;
+  }).join('');
+
+  const labelEvery = Math.max(1, Math.ceil(days.length/6));
+  const xLabels = days.map((d,i)=> i % labelEvery === 0
+    ? `<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9" fill="#5B6478" font-family="IBM Plex Mono, monospace">${d.day}</text>`
+    : '').join('');
+
+  const dots = (key, color) => days.map((d,i)=>
+    `<circle cx="${x(i).toFixed(1)}" cy="${y(d[key]).toFixed(1)}" r="2.6" fill="${color}"/>`
+  ).join('');
+
+  svg.innerHTML = `
+    ${gridLines}
+    <path d="${pathFor('spend')}" fill="none" stroke="#1C8C7C" stroke-width="2"/>
+    <path d="${pathFor('revenue')}" fill="none" stroke="#E8A33D" stroke-width="2"/>
+    ${dots('spend', '#1C8C7C')}
+    ${dots('revenue', '#E8A33D')}
+    ${xLabels}
+  `;
+}
+
+function fmtNum(n){ return Math.round(n).toLocaleString('en-US'); }
+function fmtMoney(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
+
+function renderMeasurement(data, live){
+  document.getElementById('measureApiTag').textContent = live ? 'live from PersonGraph API' : 'demo data';
+  document.getElementById('measImpressions').textContent = fmtNum(data.impressions);
+  document.getElementById('measClicks').textContent = fmtNum(data.clicks);
+  document.getElementById('measCtrLabel').textContent = `Clicks · ${(data.ctr*100).toFixed(2)}% CTR`;
+  document.getElementById('measSpend').textContent = fmtMoney(data.spend);
+  document.getElementById('measCpaLabel').textContent = `Spend · $${data.cpa.toFixed(2)} CPA`;
+  document.getElementById('measRoas').textContent = data.roas.toFixed(1) + 'x';
+  document.getElementById('measRoasLabel').textContent = `ROAS · ${fmtMoney(data.revenue)} revenue`;
+
+  const table = document.getElementById('measureChannelTable');
+  const rows = data.by_channel && data.by_channel.length
+    ? data.by_channel.map(c=>`<tr><td>${CHANNEL_LABELS[c.channel]||c.channel}</td><td class="mono">${fmtNum(c.impressions)}</td><td class="mono">${fmtNum(c.clicks)}</td><td class="mono">${(c.ctr*100).toFixed(2)}%</td><td class="mono">${fmtMoney(c.spend)}</td><td class="mono">${fmtNum(c.conversions)}</td><td class="mono">${c.roas.toFixed(1)}x</td></tr>`).join('')
+    : '<tr><td colspan="7" class="mono" style="color:var(--text-dim);">No channel syncs yet for this audience.</td></tr>';
+  table.innerHTML = '<tr><th>Channel</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>Spend</th><th>Conversions</th><th>ROAS</th></tr>' + rows;
+
+  renderMeasureChart(aggregateByDay(data.timeseries || []));
+}
+
+async function loadLiveMeasurement(){
+  const select = document.getElementById('measureAudienceSelect');
+  const tag = document.getElementById('measureApiTag');
+  if(!apiConnected){ await checkApiConnection(); }
+  if(!apiConnected){ tag.textContent = 'API offline — showing demo data'; return; }
+  tag.textContent = 'loading…';
+  try{
+    // Populate the audience picker from the live API on first load.
+    if(!select.dataset.liveLoaded){
+      const audiences = await apiGet('/audience');
+      if(audiences.length){
+        select.innerHTML = audiences.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+        select.dataset.liveLoaded = '1';
+      }
+    }
+    const audienceId = select.value;
+    if(!audienceId){ tag.textContent = 'No audiences found via live API'; return; }
+    const perf = await apiGet('/audience/' + audienceId + '/performance');
+    renderMeasurement(perf, true);
+  }catch(e){
+    tag.textContent = 'Could not reach live API — showing demo data';
+  }
+}
+document.getElementById('measureAudienceSelect').addEventListener('change', ()=>{ if(document.getElementById('measureAudienceSelect').dataset.liveLoaded) loadLiveMeasurement(); });
+renderMeasureChart(DEMO_MEASURE_DAYS);
+
 const navConfig = {
   cdp: [{view:'v-360', label:'Customer 360'},{view:'v-signals', label:'Signals & Models'},{view:'v-decision', label:'Decision Layer'},{view:'v-activation', label:'Activation'},{view:'v-explain', label:'Explainability'}],
   rep: [{view:'v-rep-search', label:'Customer Search'},{view:'v-rep-profile', label:'Unified Profile'},{view:'v-rep-escalation', label:'Escalations'}],
-  marketing: [{view:'v-mk-builder', label:'Audience Builder'},{view:'v-mk-library', label:'Audience Library'},{view:'v-mk-channels', label:'Channel Sync'}]
+  marketing: [{view:'v-mk-builder', label:'Audience Builder'},{view:'v-mk-library', label:'Audience Library'},{view:'v-mk-channels', label:'Channel Sync'},{view:'v-mk-measure', label:'Measurement'}]
 };
 const appTitles = {cdp:'Smart Engine CDP', rep:'Smart Engine · Rep App', marketing:'Smart Engine · Marketing Intelligence'};
 const allViewLabels = {};

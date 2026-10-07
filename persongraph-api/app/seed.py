@@ -11,7 +11,7 @@ def run():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
-    for model in [models.ChannelSync, models.Audience, models.Decision, models.ModelScore, models.Signal, models.Identity, models.Person]:
+    for model in [models.PerformanceMetric, models.ChannelSync, models.Audience, models.Decision, models.ModelScore, models.Signal, models.Identity, models.Person]:
         db.query(model).delete()
     db.commit()
 
@@ -76,8 +76,39 @@ def run():
             db.add(models.ModelScore(person_id=person.person_id, model_name=model_name, model_version="v1", score=score))
 
     db.commit()
+
+    # A demo audience, already synced to two channels, with backfilled
+    # performance — so the Measurement view has something real to show
+    # the first time anyone opens it, not just an empty state.
+    from . import audience_engine, measurement_engine
+    demo_rule = [{"field": "propensity_to_convert", "op": ">", "value": 0.70}]
+    audience = models.Audience(name="Q3 Reactivation", rule=demo_rule)
+    db.add(audience)
+    db.flush()
+
+    matched = audience_engine.evaluate_audience(db, audience.rule)
+    provider = measurement_engine.MockMetricsProvider()
+    # reach_override simulates a realistic audience size for the demo
+    # dashboard (matching the static placeholder figures used elsewhere
+    # in the frontend) even though only 4 people are actually seeded —
+    # matched_count/total_count stay honest to the real seeded data.
+    for channel, rate, reach in [("meta_ads", 0.92, 11940), ("email", 0.98, 12384)]:
+        sync = models.ChannelSync(
+            audience_id=audience.id,
+            channel=channel,
+            status="synced",
+            matched_count=int(len(matched) * rate),
+            total_count=len(matched),
+            synced_at=dt.datetime.utcnow(),
+        )
+        db.add(sync)
+        db.flush()
+        provider.backfill(db, sync, reach_override=reach)
+
+    db.commit()
     db.close()
-    print("Seed complete: 4 people, with identities, signals, and model scores.")
+    print("Seed complete: 4 people, with identities, signals, model scores, "
+          "and a demo audience synced to 2 channels with 14 days of performance.")
 
 
 if __name__ == "__main__":
