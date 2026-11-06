@@ -1,6 +1,6 @@
-# Loomid
+# Loomid: an open-source Customer Intelligence Platform
 
-**Open-source customer intelligence: one resolved Person ID powering a decision engine, a rep lookup tool, and audience activation with measurement.**
+**One resolved Person ID powering a decision engine, a rep lookup tool, and audience activation with measurement.**
 
 > **Status: alpha.** Runs end to end and is tested. You can load your own data and protect the API with a key, but there is **no multi-tenancy or user management** and channel providers are **mock**. Great for evaluation, prototyping, and building on. Not yet safe to expose with real customer data. See [Limitations](#limitations).
 
