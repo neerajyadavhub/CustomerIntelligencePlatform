@@ -100,4 +100,7 @@ jobs:
       - name: Customer compose file is valid
         run: |
           POSTGRES_PASSWORD=x API_KEYS=y docker compose -f docker-compose.customer.yml config > /dev/null
-          docker compose -f docker-compose.customer.yml config 2>&1 | grep -q "Set API_KEYS"
+          # With no secrets set, the file must refuse to start (it requires them).
+          if docker compose -f docker-compose.customer.yml config > /dev/null 2>&1; then
+            echo "customer compose should require POSTGRES_PASSWORD and API_KEYS"; exit 1
+          fi
