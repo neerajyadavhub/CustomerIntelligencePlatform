@@ -1,6 +1,6 @@
 __pycache__/
 *.pyc
 *.db
-loomid-api/server.log
-loomid-api/server.pid
+cgid-api/server.log
+cgid-api/server.pid
 .env

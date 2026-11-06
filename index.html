@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Loomid — Interactive Demo</title>
+<title>Customer Graph ID — Interactive Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -198,7 +198,7 @@ tr:last-child td{border-bottom:none;}
   <div id="sidebar">
     <div class="brand">
       <div class="brand-mark"></div>
-      <div><div class="brand-text">Loomid</div><div class="brand-sub">Customer Intelligence Platform</div></div>
+      <div><div class="brand-text">Customer Graph ID</div><div class="brand-sub">Customer Intelligence Platform</div></div>
     </div>
     <div class="app-switch" id="appSwitch">
       <button class="active" data-app="cdp">CDP</button>
@@ -214,7 +214,7 @@ tr:last-child td{border-bottom:none;}
 
   <div id="main">
     <div id="topbar">
-      <div class="crumbs"><span class="env-badge">DEMO</span> &nbsp;<span id="crumbApp">Loomid CDP</span> &nbsp;/&nbsp; <b id="crumbCurrent">Customer 360</b></div>
+      <div class="crumbs"><span class="env-badge">DEMO</span> &nbsp;<span id="crumbApp">Customer Graph ID CDP</span> &nbsp;/&nbsp; <b id="crumbCurrent">Customer 360</b></div>
       <div class="top-right">
         <div class="ghost" id="apiStatus" style="cursor:default;">○ Checking live API…</div>
         <a class="ghost" href="prd.html" target="_blank" rel="noopener">📄 View PRD ↗</a>
@@ -268,7 +268,7 @@ tr:last-child td{border-bottom:none;}
         <div class="view-head">
           <div class="view-eyebrow">02 · MODEL OUTPUTS</div>
           <h1 class="view-title">Signals &amp; Model Outputs</h1>
-          <p class="view-desc">Loomid's models publish scores here — the CDP does not run models, it is where their outputs live.</p>
+          <p class="view-desc">Customer Graph ID's models publish scores here — the CDP does not run models, it is where their outputs live.</p>
         </div>
         <div class="grid grid-2">
           <div class="card" id="panel-scores">
@@ -458,6 +458,7 @@ tr:last-child td{border-bottom:none;}
           <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px">
             <input type="password" id="importKey" placeholder="API key (only if your server sets API_KEYS)" style="flex:1; min-width:220px; padding:9px 10px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; background:var(--card); color:var(--text)">
             <label style="font-size:12.5px; color:var(--text-dim)"><input type="checkbox" id="importMerge" checked> merge people who share an identifier</label>
+            <button class="btn-secondary" id="modelsRun" title="Compute RFM, churn risk, lifetime value and discount sensitivity for everyone with the needed columns" style="padding:10px 14px; border:none; border-radius:8px; font-weight:600; cursor:pointer; background:#F1F3F8">Score customers</button>
             <button class="btn-primary" id="importRun" style="background:var(--ink); color:#fff; border:none; padding:10px 18px; border-radius:8px; font-weight:600; cursor:pointer">Import</button>
           </div>
           <div id="importResult" style="margin-top:14px; font-size:13px; line-height:1.6"></div>
@@ -553,9 +554,9 @@ tr:last-child td{border-bottom:none;}
 
 <div id="intro">
   <div class="box">
-    <div class="eyebrow">LOOMID · PLATFORM PROTOTYPE</div>
+    <div class="eyebrow">CUSTOMER GRAPH ID · PLATFORM PROTOTYPE</div>
     <h1>One identity layer, three teams</h1>
-    <p>Loomid resolves every customer to a single Person ID, then powers three surfaces off that same layer. All data shown is fictional.</p>
+    <p>Customer Graph ID resolves every customer to a single Person ID, then powers three surfaces off that same layer. All data shown is fictional.</p>
     <div class="apps-list">
       <div><b>CDP</b> Signals, decisions, and explainability.</div>
       <div><b>Rep App</b> Search any identifier, see the whole person.</div>
@@ -574,7 +575,7 @@ const _isLocalHost = ['localhost', '127.0.0.1', ''].includes(window.location.hos
 // Once your backend is deployed (Render/Railway/etc), replace this with
 // its real URL and push — your GitHub Pages link will then talk to the
 // live backend for every visitor automatically, with no ?api= needed.
-const DEFAULT_PROD_API = 'https://your-loomid-api.onrender.com';
+const DEFAULT_PROD_API = 'https://your-cgid-api.onrender.com';
 const DEFAULT_LOCAL_API = 'http://127.0.0.1:8000';
 // Resolution order: ?api= override, then GitHub Pages -> DEFAULT_PROD_API,
 // then any other http(s) host (the API serving its own UI) -> same origin,
@@ -630,14 +631,14 @@ async function loadLiveCdpIdentity(){
   try{
     const data = await apiGet('/person/PER-4471');
     document.getElementById('cdpLinkedAccounts').innerHTML = renderLinkedRows(data.identities);
-    document.getElementById('cdpIdentitySource').textContent = 'live from Loomid API';
+    document.getElementById('cdpIdentitySource').textContent = 'live from Customer Graph ID API';
     btn.textContent = '⚡ Loaded from live API';
   }catch(e){ btn.textContent = 'Could not reach API — try again'; }
 }
 function renderRepProfile(data){
   document.getElementById('repProfileName').textContent = data.person_id;
   document.getElementById('repProfileBadge').textContent = data.person_id;
-  document.getElementById('repProfileDesc').textContent = 'Live profile from the Loomid API — resolved across every linked account.';
+  document.getElementById('repProfileDesc').textContent = 'Live profile from the Customer Graph ID API — resolved across every linked account.';
   const confidences = data.identities.map(i=>i.match_confidence);
   const minConf = confidences.length ? Math.min(...confidences) : 1;
   document.getElementById('repProfileConfidence').textContent = Math.round(minConf*100) + '% match confidence';
@@ -650,12 +651,12 @@ function renderRepProfile(data){
     <div><div class="act-label">Linked accounts</div><div class="act-stat">${data.identities.length}</div></div>
     <div><div class="act-label">Propensity score</div><div class="act-stat">${prop ? prop.score.toFixed(2) : '—'}</div></div>
     <div><div class="act-label">Churn risk</div><div class="act-stat">${churn ? churn.score.toFixed(2) : '—'}</div></div>`;
-  document.getElementById('repActivityTitle').innerHTML = 'Logged Decisions <span class="tag">from Loomid API</span>';
+  document.getElementById('repActivityTitle').innerHTML = 'Logged Decisions <span class="tag">from Customer Graph ID API</span>';
   document.getElementById('repActivityList').innerHTML = data.recent_decisions.length
     ? data.recent_decisions.map(d=>`<li><div class="t-when">${d.result}</div>${d.action} — ${d.reason}</li>`).join('')
     : '<li><div class="t-when">—</div>No decisions logged yet for this person.</li>';
   document.getElementById('repTalkingPoint').innerHTML = prop
-    ? `<div class="rule-title"><span class="check">✓</span> Propensity score: ${prop.score.toFixed(2)}</div><div class="rule-detail">Live from Loomid API — model ${prop.model_name} ${prop.model_version}.</div>`
+    ? `<div class="rule-title"><span class="check">✓</span> Propensity score: ${prop.score.toFixed(2)}</div><div class="rule-detail">Live from Customer Graph ID API — model ${prop.model_name} ${prop.model_version}.</div>`
     : `<div class="rule-detail">No model score on file for this person yet.</div>`;
 }
 async function doRepSearch(){
@@ -680,14 +681,14 @@ async function runLiveAudience(){
   const numEl = document.getElementById('audienceCountNum');
   const labelEl = document.getElementById('audienceCountLabel');
   if(!apiConnected){ await checkApiConnection(); }
-  if(!apiConnected){ labelEl.textContent = 'API offline — run the backend locally (see loomid-api/README.md)'; return; }
+  if(!apiConnected){ labelEl.textContent = 'API offline — run the backend locally (see cgid-api/README.md)'; return; }
   labelEl.textContent = 'Querying live API…';
   try{
     const rule = [{field:'propensity_to_convert', op:'>', value:0.70},{field:'marketing_consent', op:'=', value:1.0}];
     const audience = await apiPost('/audience', {name:'Q3 Reactivation (live run)', rule});
     const preview = await apiGet('/audience/' + audience.id + '/preview');
     numEl.textContent = preview.matched_count;
-    labelEl.textContent = 'people match this rule — live from Loomid API (small on purpose: only a few demo people are seeded)';
+    labelEl.textContent = 'people match this rule — live from Customer Graph ID API (small on purpose: only a few demo people are seeded)';
   }catch(e){ labelEl.textContent = 'Could not reach live API — showing demo figure instead'; }
 }
 
@@ -763,7 +764,7 @@ function fmtNum(n){ return Math.round(n).toLocaleString('en-US'); }
 function fmtMoney(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
 
 function renderMeasurement(data, live){
-  document.getElementById('measureApiTag').textContent = live ? 'live from Loomid API' : 'demo data';
+  document.getElementById('measureApiTag').textContent = live ? 'live from Customer Graph ID API' : 'demo data';
   document.getElementById('measImpressions').textContent = fmtNum(data.impressions);
   document.getElementById('measClicks').textContent = fmtNum(data.clicks);
   document.getElementById('measCtrLabel').textContent = `Clicks · ${(data.ctr*100).toFixed(2)}% CTR`;
@@ -812,7 +813,7 @@ const navConfig = {
   rep: [{view:'v-rep-search', label:'Customer Search'},{view:'v-rep-profile', label:'Unified Profile'},{view:'v-rep-escalation', label:'Escalations'}],
   marketing: [{view:'v-mk-builder', label:'Audience Builder'},{view:'v-mk-library', label:'Audience Library'},{view:'v-mk-channels', label:'Channel Sync'},{view:'v-mk-measure', label:'Measurement'}]
 };
-const appTitles = {cdp:'Loomid CDP', rep:'Loomid · Rep App', marketing:'Loomid · Marketing Intelligence'};
+const appTitles = {cdp:'Customer Graph ID CDP', rep:'Customer Graph ID · Rep App', marketing:'Customer Graph ID · Marketing Intelligence'};
 const allViewLabels = {};
 Object.keys(navConfig).forEach(app=>{ navConfig[app].forEach(item=>{ allViewLabels[item.view] = item.label; }); });
 let currentApp = 'cdp';
@@ -849,10 +850,12 @@ async function openRepProfile(personId){
 }
 
 // ---- Import Data view -------------------------------------------------
-const SAMPLE_CSV = 'email,phone,external_user_id,orders,days_since_last_activity,score:propensity_to_convert\n' +
-  'ada@example.com,206-555-0100,CUST-1,4,12,0.92\n' +
-  'ada.work@example.com,(206) 555 0100,,,,\n' +
-  'grace@example.com,,CUST-2,1,95,0.35\n';
+const SAMPLE_CSV = 'email,phone,external_user_id,orders,total_spend,days_since_last_order,tenure_days,promo_orders\n' +
+  'ada@example.com,206-555-0100,CUST-1,12,2400,9,420,2\n' +
+  'ada.work@example.com,(206) 555 0100,,,,,,\n' +
+  'grace@example.com,,CUST-2,3,210,160,400,3\n' +
+  'linus@example.com,,CUST-3,1,35,300,300,1\n' +
+  'margaret@example.com,,CUST-4,25,6100,4,700,5\n';
 document.getElementById('importSample').addEventListener('click', ()=>{ document.getElementById('importText').value = SAMPLE_CSV; });
 document.getElementById('importFile').addEventListener('change', async (e)=>{
   const f = e.target.files[0];
@@ -876,6 +879,23 @@ document.getElementById('importRun').addEventListener('click', async ()=>{
     const esc = t => String(t).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
     out.innerHTML = `<b>${r.received}</b> rows · <b>${r.created}</b> new people · <b>${r.updated}</b> updated · <b>${r.merged}</b> merged` +
       (r.errors.length ? `<br><span style="color:#B3261E">${r.errors.length} row(s) skipped:</span><br>` + r.errors.slice(0,10).map(x=>`row ${x.index+1}: ${esc(x.error)}`).join('<br>') : '');
+  }catch(e){ out.textContent = 'Could not reach the API: ' + e.message; }
+});
+
+document.getElementById('modelsRun').addEventListener('click', async ()=>{
+  const out = document.getElementById('importResult');
+  if(!apiConnected){ out.textContent = 'No live API connected.'; return; }
+  out.textContent = 'Scoring…';
+  try{
+    const res = await fetch(API_BASE + '/models/run', {method:'POST', headers:authHeaders({'Content-Type':'application/json'}), body:'{}'});
+    if(res.status === 401){ out.textContent = 'The server requires an API key (401). Enter it above.'; return; }
+    if(!res.ok){ out.textContent = 'Scoring failed: ' + res.status; return; }
+    const r = await res.json();
+    const segs = Object.entries(r.rfm_segments).map(([k,v])=>`${k.replace('_',' ')}: <b>${v}</b>`).join(' · ');
+    out.innerHTML = `Scored <b>${r.people_scored}</b> people (${r.model_version}). ` +
+      Object.entries(r.ran).map(([k,v])=>`${k} ${v}`).join(', ') +
+      (segs ? `<br>RFM segments — ${segs}` : '') +
+      `<br><span style="color:var(--text-dim)">Scores like churn_risk and clv_12m can now be used in Marketing → Audience Builder.</span>`;
   }catch(e){ out.textContent = 'Could not reach the API: ' + e.message; }
 });
 

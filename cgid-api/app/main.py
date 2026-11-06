@@ -1,5 +1,5 @@
 """
-Loomid API — identity resolution, decisioning, and audiences in one
+Customer Graph ID API — identity resolution, decisioning, and audiences in one
 small FastAPI service.
 
 Run locally:
@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from . import models, schemas, decision_engine, audience_engine, measurement_engine, ingest
+from . import models, schemas, decision_engine, audience_engine, measurement_engine, ingest, scoring
 from .auth import install_auth
 from .clock import utcnow
 from .database import Base, engine, get_db
@@ -43,7 +43,7 @@ def cors_origins_from_env() -> list:
 
 
 app = FastAPI(
-    title="Loomid API",
+    title="Customer Graph ID API",
     description="Identity resolution, decisioning, and audience activation for one unified Person ID.",
     version="0.1.0",
 )
@@ -65,7 +65,7 @@ metrics_provider = get_metrics_provider()
 def health():
     """Always-JSON endpoint for the frontend's connection check — stable
     regardless of whether '/' is serving API info or the frontend."""
-    return {"service": "Loomid API", "status": "ok"}
+    return {"service": "Customer Graph ID API", "status": "ok"}
 
 
 # ----------------------------------------------------------------- static
@@ -93,11 +93,11 @@ if _serving_frontend:
 
     @app.get("/api-info", tags=["meta"])
     def api_info():
-        return {"service": "Loomid API", "status": "ok", "docs": "/docs"}
+        return {"service": "Customer Graph ID API", "status": "ok", "docs": "/docs"}
 else:
     @app.get("/", tags=["meta"])
     def root():
-        return {"service": "Loomid API", "status": "ok", "docs": "/docs"}
+        return {"service": "Customer Graph ID API", "status": "ok", "docs": "/docs"}
 
 
 # ---------------------------------------------------------------- identity
@@ -294,3 +294,20 @@ async def ingest_csv(request: Request, auto_merge: bool = True, db: Session = De
     if not records:
         raise HTTPException(status_code=400, detail="CSV body has no data rows.")
     return ingest.ingest_records(db, records, auto_merge)
+
+
+# ------------------------------------------------------------------ models
+@app.get("/models", tags=["models"])
+def list_models():
+    """Built-in formula models, the signals each needs, and the scores each writes."""
+    return {"model_version": scoring.MODEL_VERSION, "models": scoring.CATALOG}
+
+
+@app.post("/models/run", response_model=schemas.ModelRunResult, tags=["models"])
+def run_models(req: schemas.ModelRunRequest = schemas.ModelRunRequest(), db: Session = Depends(get_db)):
+    """Compute built-in models for everyone who has the required signals and
+    save the results as model scores (re-running overwrites, never duplicates)."""
+    try:
+        return scoring.run_models(db, req.models)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))

@@ -11,24 +11,24 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: loomid
-      POSTGRES_PASSWORD: loomid
-      POSTGRES_DB: loomid
+      POSTGRES_USER: cgid
+      POSTGRES_PASSWORD: cgid
+      POSTGRES_DB: cgid
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U loomid -d loomid"]
+      test: ["CMD-SHELL", "pg_isready -U cgid -d cgid"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   api:
-    build: ./loomid-api
+    build: ./cgid-api
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://loomid:loomid@db:5432/loomid
+      DATABASE_URL: postgresql://cgid:cgid@db:5432/cgid
       RESOLVER_MODE: mock
       METRICS_MODE: mock
       # Demo only. Wipes and reseeds the database above on every start.

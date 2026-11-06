@@ -7,9 +7,9 @@ trying it on real data shapes, and tests.
 ## Good first contributions
 
 - A real `MetricsProvider` (Meta Insights, Google Ads, TikTok, an ESP) — see
-  `loomid-api/app/measurement_engine.py`
+  `cgid-api/app/measurement_engine.py`
 - A real `IdentityResolver` (Segment, mParticle, your warehouse) — see
-  `loomid-api/app/identity_resolver.py`
+  `cgid-api/app/identity_resolver.py`
 - New actions in the decision engine's `ACTION_RULES` registry
 - Authentication / multi-tenancy (open an issue first to agree on the design)
 - Docs fixes and clearer error messages
@@ -17,7 +17,7 @@ trying it on real data shapes, and tests.
 ## Dev setup
 
 ```bash
-cd loomid-api
+cd cgid-api
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 pytest
@@ -33,11 +33,11 @@ Run the API: `python -m app.seed && uvicorn app.main:app --reload`, or
 ## The two copies of the UI
 
 `index.html` and `prd.html` at the repo root are what GitHub Pages serves.
-Copies live in `loomid-api/static/` so the API can serve the UI itself.
+Copies live in `cgid-api/static/` so the API can serve the UI itself.
 Keep them identical — CI fails if they differ:
 
 ```bash
-cp index.html prd.html loomid-api/static/
+cp index.html prd.html cgid-api/static/
 ```
 
 ## Pull requests

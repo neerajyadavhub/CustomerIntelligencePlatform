@@ -1,4 +1,4 @@
-# Loomid: an open-source Customer Intelligence Platform
+# Customer Graph ID: an open-source Customer Intelligence Platform
 
 **One resolved Person ID powering a decision engine, a rep lookup tool, and audience activation with measurement.**
 
@@ -12,11 +12,11 @@ Live demo: **https://neerajyadavhub.github.io/CustomerIntelligencePlatform/**
 - **Rep App** - search any identifier, get one unified profile across accounts, with a suggested talking point.
 - **Marketing Intelligence** - build an audience from signals/scores, preview size, sync to a channel, then **measure** it: impressions, spend, conversions, ROAS by channel and over time.
 
-All three share one Person ID layer, served by a FastAPI backend ([`loomid-api/`](loomid-api/)).
+All three share one Person ID layer, served by a FastAPI backend ([`cgid-api/`](cgid-api/)).
 
 ```mermaid
 flowchart LR
-  UI[Web UI: CDP / Rep / Marketing] --> API[Loomid API<br/>FastAPI]
+  UI[Web UI: CDP / Rep / Marketing] --> API[Customer Graph ID API<br/>FastAPI]
   API --> ID[IdentityResolver<br/>mock | segment]
   API --> DE[Decision engine<br/>ACTION_RULES]
   API --> AE[Audience engine]
@@ -37,7 +37,7 @@ Open http://localhost:8000 (UI) or http://localhost:8000/docs (API). This starts
 Without Docker:
 
 ```bash
-cd loomid-api
+cd cgid-api
 pip install -r requirements.txt
 python -m app.seed
 uvicorn app.main:app --reload
@@ -60,6 +60,19 @@ CSV columns: `external_user_id, email, phone, account_type, source`; `score:<mod
 
 Matching is exact on normalized identifiers (no fuzzy/probabilistic matching), so a shared household phone will link people - pass `auto_merge=false` to report conflicts instead.
 
+## Built-in models
+
+Upload orders and get scores back, no data science team needed. These are transparent formulas (not trained ML), so every number is explainable. Run them with **CDP > Import Data > Score customers** or `POST /models/run`; list them at `GET /models`.
+
+| Model | Scores written | Needs these columns |
+|---|---|---|
+| RFM | `rfm_recency`, `rfm_frequency`, `rfm_monetary` (1-5) plus a segment (champions, loyal, new, at risk, lapsed) | `days_since_last_order`, `orders`, `total_spend` |
+| Churn risk | `churn_risk` (0-1) | `days_since_last_order`, `orders` (`tenure_days` improves it) |
+| Lifetime value | `clv_12m` (expected revenue, next 12 months) | above plus `total_spend` |
+| Discount sensitivity | `discount_sensitivity` (0-1) | `orders`, `promo_orders` |
+
+Scores are ordinary model scores, so audiences can use them directly, e.g. `churn_risk > 0.7` and `clv_12m > 500`. Formulas are documented in [`cgid-api/app/scoring.py`](cgid-api/app/scoring.py). To use your own trained model instead, ingest its output as `score:<name>` columns.
+
 ## Configuration
 
 | Variable | Default | Purpose |
@@ -72,7 +85,7 @@ Matching is exact on normalized identifiers (no fuzzy/probabilistic matching), s
 | `API_KEYS` | unset (open) | Comma-separated API keys; set this for any real deployment |
 | `PORT` | `8000` | Container listen port |
 
-See [`loomid-api/.env.example`](loomid-api/.env.example).
+See [`cgid-api/.env.example`](cgid-api/.env.example).
 
 ## Extending it
 
@@ -95,7 +108,7 @@ See [`loomid-api/.env.example`](loomid-api/.env.example).
 
 ```
 index.html, prd.html     Web UI and PRD (served by GitHub Pages)
-loomid-api/         FastAPI backend, tests, Dockerfile
+cgid-api/         FastAPI backend, tests, Dockerfile
   static/                Copies of the UI so the API can serve it (kept in sync by CI)
 docker-compose.yml       API + Postgres
 .github/workflows/ci.yml Tests, Postgres, Docker smoke test
@@ -127,12 +140,12 @@ than `/frontend`, copy the updated file to wherever Pages is pointed
 (e.g. `index.html` at the repo root) before committing — check
 Settings → Pages → "Branch" to see which folder is live.
 
-### 2. Updating the backend (Loomid API)
+### 2. Updating the backend (Customer Graph ID API)
 
 The backend lives and deploys separately, since GitHub Pages can't run
-it. Deploy `loomid-api/` to a host that runs Docker/Python — Render,
+it. Deploy `cgid-api/` to a host that runs Docker/Python — Render,
 Railway, or Fly.io all work with the included `Dockerfile` (see
-[`loomid-api/README.md`](loomid-api/README.md) for exact
+[`cgid-api/README.md`](cgid-api/README.md) for exact
 steps). Once deployed with auto-deploy on push enabled, updating the
 backend is the same git workflow: edit, commit, push — the host rebuilds
 and redeploys on its own.
@@ -145,13 +158,13 @@ The frontend resolves which API to call in this order:
    for testing a specific deployment without changing code).
 2. `http://127.0.0.1:8000` automatically, when running on localhost.
 3. Otherwise, a hardcoded default baked into `index.html`
-   (currently a placeholder: `https://your-loomid-api.onrender.com`).
+   (currently a placeholder: `https://your-cgid-api.onrender.com`).
 
 Once you've deployed the backend and have its real URL, open
 `index.html`, find the line:
 
 ```js
-const DEFAULT_PROD_API = 'https://your-loomid-api.onrender.com';
+const DEFAULT_PROD_API = 'https://your-cgid-api.onrender.com';
 ```
 
 replace the placeholder with your real backend URL, then commit and
@@ -164,9 +177,9 @@ with no backend connected.
 ### A third option: one combined URL
 
 If you'd rather not keep the frontend on GitHub Pages and the backend on
-a separate host, you can deploy both together from `loomid-api/`
+a separate host, you can deploy both together from `cgid-api/`
 as a single service with one URL — see "Combined single-URL deploy" in
-[`loomid-api/README.md`](loomid-api/README.md). This is an
+[`cgid-api/README.md`](cgid-api/README.md). This is an
 alternative to the two-host setup above, not a requirement; the existing
 `neerajyadavhub.github.io` link keeps working fine either way, since it
 doesn't care where the backend lives as long as `DEFAULT_PROD_API` points
@@ -175,11 +188,11 @@ to it.
 ## Running tests
 
 ```bash
-cd loomid-api
+cd cgid-api
 pip install -r requirements-dev.txt
 pytest
 ```
 
 ## Provenance
 
-Loomid is an independent open-source project. Its identity-resolution and decisioning patterns are based on general industry practice, and it contains no code, data, or confidential information from any employer. See [`CASE-STUDY.md`](CASE-STUDY.md).
+Customer Graph ID is an independent open-source project. Its identity-resolution and decisioning patterns are based on general industry practice, and it contains no code, data, or confidential information from any employer. See [`CASE-STUDY.md`](CASE-STUDY.md).

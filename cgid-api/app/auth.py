@@ -11,7 +11,7 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-PROTECTED_PREFIXES = ("/identity", "/person", "/decision", "/audience", "/ingest")
+PROTECTED_PREFIXES = ("/identity", "/person", "/decision", "/audience", "/ingest", "/models")
 
 
 def configured_keys() -> list:

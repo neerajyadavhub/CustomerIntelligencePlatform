@@ -4,7 +4,7 @@ from app.main import cors_origins_from_env
 def test_health_is_json(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"service": "Loomid API", "status": "ok"}
+    assert response.json() == {"service": "Customer Graph ID API", "status": "ok"}
 
 
 def test_openapi_exposes_core_routes(client):

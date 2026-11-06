@@ -1,6 +1,6 @@
 """
 Shared fixtures. Every test runs against a freshly seeded, isolated SQLite
-database, so tests can mutate data freely and never touch loomid.db.
+database, so tests can mutate data freely and never touch cgid.db.
 """
 import os
 import tempfile
@@ -13,7 +13,7 @@ import pytest
 # Tests run on a throwaway SQLite file by default. Set TEST_DATABASE_URL to run
 # the same suite against another database (CI does this with Postgres). The
 # suite wipes and reseeds that database, so never point it at real data.
-_tmpdir = tempfile.mkdtemp(prefix="loomid-tests-")
+_tmpdir = tempfile.mkdtemp(prefix="cgid-tests-")
 os.environ["DATABASE_URL"] = os.getenv("TEST_DATABASE_URL") or f"sqlite:///{os.path.join(_tmpdir, 'test.db')}"
 os.environ["SEED_ALLOW_RESET"] = "true"
 os.environ["RESOLVER_MODE"] = "mock"

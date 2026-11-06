@@ -1,7 +1,7 @@
 """
 Post-activation measurement: performance of an audience after it's been
 synced to a channel, so marketing can answer "how did Q3 Reactivation
-actually perform on Meta" without leaving Loomid.
+actually perform on Meta" without leaving Customer Graph ID.
 
 Same pattern as identity_resolver.py: everything in the app talks to the
 MetricsProvider interface below, never to Meta/Google directly, so

@@ -18,14 +18,14 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
     defaults:
       run:
-        working-directory: loomid-api
+        working-directory: cgid-api
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-          cache-dependency-path: loomid-api/requirements-dev.txt
+          cache-dependency-path: cgid-api/requirements-dev.txt
       - run: pip install -r requirements-dev.txt
       - run: pytest
 
@@ -36,28 +36,28 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: loomid
-          POSTGRES_PASSWORD: loomid
-          POSTGRES_DB: loomid_test
+          POSTGRES_USER: cgid
+          POSTGRES_PASSWORD: cgid
+          POSTGRES_DB: cgid_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U loomid -d loomid_test"
+          --health-cmd "pg_isready -U cgid -d cgid_test"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
     defaults:
       run:
-        working-directory: loomid-api
+        working-directory: cgid-api
     env:
-      TEST_DATABASE_URL: postgresql://loomid:loomid@localhost:5432/loomid_test
+      TEST_DATABASE_URL: postgresql://cgid:cgid@localhost:5432/cgid_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: loomid-api/requirements-dev.txt
+          cache-dependency-path: cgid-api/requirements-dev.txt
       - run: pip install -r requirements-dev.txt
       - run: pytest
 
@@ -68,8 +68,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Compare copies
         run: |
-          diff index.html loomid-api/static/index.html
-          diff prd.html loomid-api/static/prd.html
+          diff index.html cgid-api/static/index.html
+          diff prd.html cgid-api/static/prd.html
 
   docker:
     name: Docker image and compose
@@ -78,11 +78,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build image
-        run: docker build -t loomid-api ./loomid-api
+        run: docker build -t cgid-api ./cgid-api
 
       - name: Run the image (demo SQLite mode)
         run: |
-          docker run -d --name api -p 8000:8000 loomid-api
+          docker run -d --name api -p 8000:8000 cgid-api
           for i in $(seq 1 30); do curl -fsS http://localhost:8000/health && break || sleep 1; done
           curl -fsS http://localhost:8000/health
           curl -fsS "http://localhost:8000/identity/lookup?identifier=jordyn@personalmail.com" | grep PER-4471

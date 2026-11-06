@@ -1,8 +1,8 @@
-# Loomid API
+# Customer Graph ID API
 
 A small FastAPI backend implementing identity resolution, rules-based
 decisioning, and audience segmentation/activation behind one resolved
-Person ID. This is the reference backend for the Loomid prototype
+Person ID. This is the reference backend for the Customer Graph ID prototype
 (CDP + Rep App + Marketing Intelligence) one level up in this repo.
 
 ## What this is
@@ -42,9 +42,9 @@ production-ready service.
 ## Quickstart
 
 ```bash
-cd loomid-api
+cd cgid-api
 pip install -r requirements.txt
-python -m app.seed        # creates loomid.db with 4 demo people
+python -m app.seed        # creates cgid.db with 4 demo people
 uvicorn app.main:app --reload
 ```
 
@@ -57,7 +57,7 @@ curl "http://127.0.0.1:8000/identity/lookup?identifier=jordyn@personalmail.com"
 ## Project structure
 
 ```
-loomid-api/
+cgid-api/
   app/
     main.py              FastAPI app, all routes
     database.py          SQLAlchemy engine/session (SQLite by default)
@@ -121,9 +121,9 @@ Copy `.env.example` to `.env` and adjust:
 
 ## Deploying (Render, Railway, Fly.io — any Docker host)
 
-1. Push this repo (or just the `loomid-api/` folder) to GitHub.
+1. Push this repo (or just the `cgid-api/` folder) to GitHub.
 2. On Render: **New → Web Service**, connect the repo, set the root
-   directory to `loomid-api` if deploying the whole monorepo,
+   directory to `cgid-api` if deploying the whole monorepo,
    and let it build from the included `Dockerfile`.
 3. Set environment variables from `.env.example` in the host's dashboard
    (at minimum, nothing is required to run with the SQLite/mock defaults,

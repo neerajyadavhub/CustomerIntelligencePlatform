@@ -179,3 +179,17 @@ class IngestResult(BaseModel):
     updated: int
     merged: int
     errors: list[IngestError]
+
+
+# ------------------------------------------------------------------ models
+class ModelRunRequest(BaseModel):
+    models: Optional[list[str]] = None  # default: all built-in models
+
+
+class ModelRunResult(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+    people_scored: int
+    ran: dict
+    skipped: dict
+    rfm_segments: dict
+    model_version: str
