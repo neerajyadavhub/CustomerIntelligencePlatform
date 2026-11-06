@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Engine — Interactive Demo</title>
+<title>Loomid — Interactive Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -198,7 +198,7 @@ tr:last-child td{border-bottom:none;}
   <div id="sidebar">
     <div class="brand">
       <div class="brand-mark"></div>
-      <div><div class="brand-text">Smart Engine</div><div class="brand-sub">Customer Intelligence Platform</div></div>
+      <div><div class="brand-text">Loomid</div><div class="brand-sub">Customer Intelligence Platform</div></div>
     </div>
     <div class="app-switch" id="appSwitch">
       <button class="active" data-app="cdp">CDP</button>
@@ -214,7 +214,7 @@ tr:last-child td{border-bottom:none;}
 
   <div id="main">
     <div id="topbar">
-      <div class="crumbs"><span class="env-badge">DEMO</span> &nbsp;<span id="crumbApp">Smart Engine CDP</span> &nbsp;/&nbsp; <b id="crumbCurrent">Customer 360</b></div>
+      <div class="crumbs"><span class="env-badge">DEMO</span> &nbsp;<span id="crumbApp">Loomid CDP</span> &nbsp;/&nbsp; <b id="crumbCurrent">Customer 360</b></div>
       <div class="top-right">
         <div class="ghost" id="apiStatus" style="cursor:default;">○ Checking live API…</div>
         <a class="ghost" href="prd.html" target="_blank" rel="noopener">📄 View PRD ↗</a>
@@ -232,7 +232,7 @@ tr:last-child td{border-bottom:none;}
         </div>
         <div class="grid grid-2">
           <div class="card" id="panel-profile">
-            <div class="card-title">Customer Profile <span class="tag">TRR-88213</span></div>
+            <div class="card-title">Customer Profile <span class="tag">CUST-88213</span></div>
             <div class="profile-head">
               <div class="avatar">JA</div>
               <div><div class="profile-name">Jordyn Alvarez</div><div class="profile-id">Consignor since Mar 2022 · West Region</div></div>
@@ -248,8 +248,8 @@ tr:last-child td{border-bottom:none;}
           <div class="card" id="panel-identity">
             <div class="card-title">Linked Identities <span class="tag" id="cdpIdentitySource">via Segment sync · 2h ago</span></div>
             <div id="cdpLinkedAccounts">
-              <div class="linked-row"><div class="linked-main"><span>TRR-88213 · jordyn@gmail.com</span><span class="linked-type">Personal · Buyer + Consignor</span></div><span class="conf-pill high">94% match</span></div>
-              <div class="linked-row"><div class="linked-main"><span>TRR-90441 · jordyn@resellerco.com</span><span class="linked-type">Business · Consignor</span></div><span class="conf-pill high">94% match</span></div>
+              <div class="linked-row"><div class="linked-main"><span>CUST-88213 · jordyn@gmail.com</span><span class="linked-type">Personal · Buyer + Consignor</span></div><span class="conf-pill high">94% match</span></div>
+              <div class="linked-row"><div class="linked-main"><span>CUST-90441 · jordyn@resellerco.com</span><span class="linked-type">Business · Consignor</span></div><span class="conf-pill high">94% match</span></div>
               <div class="linked-row"><div class="linked-main"><span>Anonymous session · mobile device</span><span class="linked-type">Browsing only</span></div><span class="conf-pill med">71% match</span></div>
             </div>
             <div class="rule-detail" style="margin-left:0; margin-top:10px;">This is what makes the numbers above person-level, not account-level.</div>
@@ -268,7 +268,7 @@ tr:last-child td{border-bottom:none;}
         <div class="view-head">
           <div class="view-eyebrow">02 · MODEL OUTPUTS</div>
           <h1 class="view-title">Signals &amp; Model Outputs</h1>
-          <p class="view-desc">Smart Engine's models publish scores here — the CDP does not run models, it is where their outputs live.</p>
+          <p class="view-desc">Loomid's models publish scores here — the CDP does not run models, it is where their outputs live.</p>
         </div>
         <div class="grid grid-2">
           <div class="card" id="panel-scores">
@@ -351,10 +351,10 @@ tr:last-child td{border-bottom:none;}
         <div class="view-head">
           <div class="view-eyebrow">01 · CUSTOMER 360 IDENTITY API</div>
           <h1 class="view-title">Customer Search</h1>
-          <p class="view-desc">Search by any identifier — email, phone, or TRR user ID. Resolves to a Person ID so you see the whole relationship.</p>
+          <p class="view-desc">Search by any identifier — email, phone, or customer ID. Resolves to a Person ID so you see the whole relationship.</p>
         </div>
         <div class="search-box">
-          <input id="repSearchInput" type="text" placeholder="Search email, phone, or TRR user ID..." value="jordyn@personalmail.com">
+          <input id="repSearchInput" type="text" placeholder="Search email, phone, or customer ID..." value="jordyn@personalmail.com">
           <button id="repSearchBtn">Search</button>
         </div>
         <div class="rule-detail" style="margin:-2px 0 14px 2px;">Live API connected — try <code>jordyn@personalmail.com</code>, <code>jordyn@resellerco.com</code>, or <code>+1-206-555-0111</code> (all resolve to the same person). Offline, search shows static demo results.</div>
@@ -376,8 +376,8 @@ tr:last-child td{border-bottom:none;}
           <div class="card">
             <div class="card-title">Linked Accounts <span class="tag" id="repProfileConfidence">94% match confidence</span></div>
             <div id="repLinkedAccounts">
-              <div class="linked-row"><div class="linked-main"><span>TRR-88213 · jordyn@gmail.com</span><span class="linked-type">Personal</span></div><span class="conf-pill high">94%</span></div>
-              <div class="linked-row"><div class="linked-main"><span>TRR-90441 · jordyn@resellerco.com</span><span class="linked-type">Business</span></div><span class="conf-pill high">94%</span></div>
+              <div class="linked-row"><div class="linked-main"><span>CUST-88213 · jordyn@gmail.com</span><span class="linked-type">Personal</span></div><span class="conf-pill high">94%</span></div>
+              <div class="linked-row"><div class="linked-main"><span>CUST-90441 · jordyn@resellerco.com</span><span class="linked-type">Business</span></div><span class="conf-pill high">94%</span></div>
             </div>
           </div>
           <div class="card">
@@ -553,9 +553,9 @@ tr:last-child td{border-bottom:none;}
 
 <div id="intro">
   <div class="box">
-    <div class="eyebrow">SMART ENGINE · PLATFORM PROTOTYPE</div>
+    <div class="eyebrow">LOOMID · PLATFORM PROTOTYPE</div>
     <h1>One identity layer, three teams</h1>
-    <p>Smart Engine resolves every customer to a single Person ID, then powers three surfaces off that same layer. All data shown is fictional.</p>
+    <p>Loomid resolves every customer to a single Person ID, then powers three surfaces off that same layer. All data shown is fictional.</p>
     <div class="apps-list">
       <div><b>CDP</b> Signals, decisions, and explainability.</div>
       <div><b>Rep App</b> Search any identifier, see the whole person.</div>
@@ -574,7 +574,7 @@ const _isLocalHost = ['localhost', '127.0.0.1', ''].includes(window.location.hos
 // Once your backend is deployed (Render/Railway/etc), replace this with
 // its real URL and push — your GitHub Pages link will then talk to the
 // live backend for every visitor automatically, with no ?api= needed.
-const DEFAULT_PROD_API = 'https://your-persongraph-api.onrender.com';
+const DEFAULT_PROD_API = 'https://your-loomid-api.onrender.com';
 const DEFAULT_LOCAL_API = 'http://127.0.0.1:8000';
 // Resolution order: ?api= override, then GitHub Pages -> DEFAULT_PROD_API,
 // then any other http(s) host (the API serving its own UI) -> same origin,
@@ -630,14 +630,14 @@ async function loadLiveCdpIdentity(){
   try{
     const data = await apiGet('/person/PER-4471');
     document.getElementById('cdpLinkedAccounts').innerHTML = renderLinkedRows(data.identities);
-    document.getElementById('cdpIdentitySource').textContent = 'live from PersonGraph API';
+    document.getElementById('cdpIdentitySource').textContent = 'live from Loomid API';
     btn.textContent = '⚡ Loaded from live API';
   }catch(e){ btn.textContent = 'Could not reach API — try again'; }
 }
 function renderRepProfile(data){
   document.getElementById('repProfileName').textContent = data.person_id;
   document.getElementById('repProfileBadge').textContent = data.person_id;
-  document.getElementById('repProfileDesc').textContent = 'Live profile from the PersonGraph API — resolved across every linked account.';
+  document.getElementById('repProfileDesc').textContent = 'Live profile from the Loomid API — resolved across every linked account.';
   const confidences = data.identities.map(i=>i.match_confidence);
   const minConf = confidences.length ? Math.min(...confidences) : 1;
   document.getElementById('repProfileConfidence').textContent = Math.round(minConf*100) + '% match confidence';
@@ -650,12 +650,12 @@ function renderRepProfile(data){
     <div><div class="act-label">Linked accounts</div><div class="act-stat">${data.identities.length}</div></div>
     <div><div class="act-label">Propensity score</div><div class="act-stat">${prop ? prop.score.toFixed(2) : '—'}</div></div>
     <div><div class="act-label">Churn risk</div><div class="act-stat">${churn ? churn.score.toFixed(2) : '—'}</div></div>`;
-  document.getElementById('repActivityTitle').innerHTML = 'Logged Decisions <span class="tag">from PersonGraph API</span>';
+  document.getElementById('repActivityTitle').innerHTML = 'Logged Decisions <span class="tag">from Loomid API</span>';
   document.getElementById('repActivityList').innerHTML = data.recent_decisions.length
     ? data.recent_decisions.map(d=>`<li><div class="t-when">${d.result}</div>${d.action} — ${d.reason}</li>`).join('')
     : '<li><div class="t-when">—</div>No decisions logged yet for this person.</li>';
   document.getElementById('repTalkingPoint').innerHTML = prop
-    ? `<div class="rule-title"><span class="check">✓</span> Propensity score: ${prop.score.toFixed(2)}</div><div class="rule-detail">Live from PersonGraph API — model ${prop.model_name} ${prop.model_version}.</div>`
+    ? `<div class="rule-title"><span class="check">✓</span> Propensity score: ${prop.score.toFixed(2)}</div><div class="rule-detail">Live from Loomid API — model ${prop.model_name} ${prop.model_version}.</div>`
     : `<div class="rule-detail">No model score on file for this person yet.</div>`;
 }
 async function doRepSearch(){
@@ -680,14 +680,14 @@ async function runLiveAudience(){
   const numEl = document.getElementById('audienceCountNum');
   const labelEl = document.getElementById('audienceCountLabel');
   if(!apiConnected){ await checkApiConnection(); }
-  if(!apiConnected){ labelEl.textContent = 'API offline — run the backend locally (see persongraph-api/README.md)'; return; }
+  if(!apiConnected){ labelEl.textContent = 'API offline — run the backend locally (see loomid-api/README.md)'; return; }
   labelEl.textContent = 'Querying live API…';
   try{
     const rule = [{field:'propensity_to_convert', op:'>', value:0.70},{field:'marketing_consent', op:'=', value:1.0}];
     const audience = await apiPost('/audience', {name:'Q3 Reactivation (live run)', rule});
     const preview = await apiGet('/audience/' + audience.id + '/preview');
     numEl.textContent = preview.matched_count;
-    labelEl.textContent = 'people match this rule — live from PersonGraph API (small on purpose: only a few demo people are seeded)';
+    labelEl.textContent = 'people match this rule — live from Loomid API (small on purpose: only a few demo people are seeded)';
   }catch(e){ labelEl.textContent = 'Could not reach live API — showing demo figure instead'; }
 }
 
@@ -763,7 +763,7 @@ function fmtNum(n){ return Math.round(n).toLocaleString('en-US'); }
 function fmtMoney(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
 
 function renderMeasurement(data, live){
-  document.getElementById('measureApiTag').textContent = live ? 'live from PersonGraph API' : 'demo data';
+  document.getElementById('measureApiTag').textContent = live ? 'live from Loomid API' : 'demo data';
   document.getElementById('measImpressions').textContent = fmtNum(data.impressions);
   document.getElementById('measClicks').textContent = fmtNum(data.clicks);
   document.getElementById('measCtrLabel').textContent = `Clicks · ${(data.ctr*100).toFixed(2)}% CTR`;
@@ -812,7 +812,7 @@ const navConfig = {
   rep: [{view:'v-rep-search', label:'Customer Search'},{view:'v-rep-profile', label:'Unified Profile'},{view:'v-rep-escalation', label:'Escalations'}],
   marketing: [{view:'v-mk-builder', label:'Audience Builder'},{view:'v-mk-library', label:'Audience Library'},{view:'v-mk-channels', label:'Channel Sync'},{view:'v-mk-measure', label:'Measurement'}]
 };
-const appTitles = {cdp:'Smart Engine CDP', rep:'Smart Engine · Rep App', marketing:'Smart Engine · Marketing Intelligence'};
+const appTitles = {cdp:'Loomid CDP', rep:'Loomid · Rep App', marketing:'Loomid · Marketing Intelligence'};
 const allViewLabels = {};
 Object.keys(navConfig).forEach(app=>{ navConfig[app].forEach(item=>{ allViewLabels[item.view] = item.label; }); });
 let currentApp = 'cdp';

@@ -1,4 +1,4 @@
-# Case Study: Smart Engine — a shared identity layer for CDP, sales, and marketing
+# Case Study: Loomid — a shared identity layer for CDP, sales, and marketing
 
 **Role:** Product Manager (solo, end-to-end — PRD, UX, and reference engineering)
 **Timeline:** Prototype built over several iterations, from single-feature demo to a three-app platform with a working backend.
@@ -46,7 +46,7 @@ a working reference implementation myself:
   one identity layer and one "Decision Ledger" showing every automated
   decision's reasoning in real time — so stakeholders could *see* the
   behavior, not just read about it.
-- A real, tested **backend** (PersonGraph API) implementing identity
+- A real, tested **backend** (Loomid API) implementing identity
   resolution, a rules-based decision engine, audience segmentation, and
   post-activation measurement — not a mockup, but working code with
   swappable provider interfaces so a real identity source (e.g. Segment)

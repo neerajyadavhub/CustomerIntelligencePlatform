@@ -1,5 +1,5 @@
 """
-PersonGraph API — identity resolution, decisioning, and audiences in one
+Loomid API — identity resolution, decisioning, and audiences in one
 small FastAPI service.
 
 Run locally:
@@ -43,7 +43,7 @@ def cors_origins_from_env() -> list:
 
 
 app = FastAPI(
-    title="PersonGraph API",
+    title="Loomid API",
     description="Identity resolution, decisioning, and audience activation for one unified Person ID.",
     version="0.1.0",
 )
@@ -65,7 +65,7 @@ metrics_provider = get_metrics_provider()
 def health():
     """Always-JSON endpoint for the frontend's connection check — stable
     regardless of whether '/' is serving API info or the frontend."""
-    return {"service": "PersonGraph API", "status": "ok"}
+    return {"service": "Loomid API", "status": "ok"}
 
 
 # ----------------------------------------------------------------- static
@@ -93,11 +93,11 @@ if _serving_frontend:
 
     @app.get("/api-info", tags=["meta"])
     def api_info():
-        return {"service": "PersonGraph API", "status": "ok", "docs": "/docs"}
+        return {"service": "Loomid API", "status": "ok", "docs": "/docs"}
 else:
     @app.get("/", tags=["meta"])
     def root():
-        return {"service": "PersonGraph API", "status": "ok", "docs": "/docs"}
+        return {"service": "Loomid API", "status": "ok", "docs": "/docs"}
 
 
 # ---------------------------------------------------------------- identity

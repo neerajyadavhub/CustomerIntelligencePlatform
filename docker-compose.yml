@@ -11,24 +11,24 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: persongraph
-      POSTGRES_PASSWORD: persongraph
-      POSTGRES_DB: persongraph
+      POSTGRES_USER: loomid
+      POSTGRES_PASSWORD: loomid
+      POSTGRES_DB: loomid
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U persongraph -d persongraph"]
+      test: ["CMD-SHELL", "pg_isready -U loomid -d loomid"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   api:
-    build: ./persongraph-api
+    build: ./loomid-api
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://persongraph:persongraph@db:5432/persongraph
+      DATABASE_URL: postgresql://loomid:loomid@db:5432/loomid
       RESOLVER_MODE: mock
       METRICS_MODE: mock
       # Demo only. Wipes and reseeds the database above on every start.

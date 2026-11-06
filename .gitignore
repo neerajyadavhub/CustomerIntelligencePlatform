@@ -1,6 +1,6 @@
 __pycache__/
 *.pyc
 *.db
-persongraph-api/server.log
-persongraph-api/server.pid
+loomid-api/server.log
+loomid-api/server.pid
 .env
