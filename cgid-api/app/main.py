@@ -16,10 +16,10 @@ import os
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
-from . import models, schemas, decision_engine, audience_engine, measurement_engine, ingest, scoring
+from . import models, schemas, decision_engine, audience_engine, measurement_engine, ingest, scoring, exports
 from .auth import install_auth
 from .clock import utcnow
 from .database import Base, engine, get_db
@@ -191,6 +191,9 @@ def sync_audience(audience_id: str, req: schemas.ChannelSyncRequest, db: Session
     if not audience:
         raise HTTPException(status_code=404, detail="Audience not found.")
     matched = audience_engine.evaluate_audience(db, audience.rule)
+    excluded = []
+    if req.enforce_consent:
+        matched, excluded = audience_engine.split_by_consent(db, matched)
     # Real integration point: call the channel's API here (Meta Conversions API,
     # Google Ads Customer Match, your ESP's API, etc). This mock marks 92% as
     # successfully matched, mirroring real hashed-email match rates.
@@ -216,6 +219,7 @@ def sync_audience(audience_id: str, req: schemas.ChannelSyncRequest, db: Session
     if sync.status == "synced":
         metrics_provider.backfill(db, sync)
 
+    sync.excluded_no_consent = len(excluded) if req.enforce_consent else None
     return sync
 
 
@@ -311,3 +315,56 @@ def run_models(req: schemas.ModelRunRequest = schemas.ModelRunRequest(), db: Ses
         return scoring.run_models(db, req.models)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+# ----------------------------------------------------------- export / dedupe
+@app.get("/audience/{audience_id}/export", tags=["audience"])
+def export_audience(audience_id: str, purpose: str = "target", db: Session = Depends(get_db)):
+    """Download an audience as a CSV of SHA-256 hashed emails/phones for manual
+    upload to Meta or Google. purpose=target (lookalike seeds, custom audiences;
+    consented people only) or purpose=suppress (exclusion lists; everyone)."""
+    if purpose not in exports.PURPOSES:
+        raise HTTPException(status_code=400, detail=f"purpose must be one of {', '.join(exports.PURPOSES)}.")
+    audience = db.query(models.Audience).filter(models.Audience.id == audience_id).first()
+    if not audience:
+        raise HTTPException(status_code=404, detail="Audience not found.")
+    matched = audience_engine.evaluate_audience(db, audience.rule)
+    excluded = []
+    if purpose == "target":
+        matched, excluded = audience_engine.split_by_consent(db, matched)
+    rows = exports.hashed_rows(db, matched)
+    return Response(
+        content=exports.to_csv(rows),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{audience.id}-{purpose}.csv"',
+            "X-People": str(len(matched)),
+            "X-Rows": str(len(rows)),
+            "X-Excluded-No-Consent": str(len(excluded)),
+        },
+    )
+
+
+@app.get("/identity/duplicates", response_model=schemas.DuplicateReport, tags=["identity"])
+def duplicate_report(db: Session = Depends(get_db)):
+    """How many accounts are really the same people: accounts (identity records)
+    versus resolved people, and the people with the most linked accounts."""
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for ident in db.query(models.Identity).all():
+        groups[ident.person_id].append(ident)
+    accounts = sum(len(v) for v in groups.values())
+    people = len(groups)
+    multi = {pid: v for pid, v in groups.items() if len(v) > 1}
+    largest = sorted(multi.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:10]
+    return schemas.DuplicateReport(
+        accounts=accounts,
+        people=people,
+        duplicate_accounts=accounts - people,
+        duplicate_rate=round((accounts - people) / accounts, 4) if accounts else 0.0,
+        people_with_multiple_accounts=len(multi),
+        largest_groups=[
+            schemas.DuplicateGroup(person_id=pid, accounts=len(v), emails=sorted({i.email for i in v if i.email})[:5])
+            for pid, v in largest
+        ],
+    )

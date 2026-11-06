@@ -6,6 +6,7 @@ Each condition's `field` can reference either a Signal name or a
 ModelScore's model_name; we check both. `op` is one of > < >= <= = !=.
 """
 import operator
+import os
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from . import models
@@ -59,3 +60,17 @@ def evaluate_audience(db: Session, rule: List[Dict[str, Any]]) -> List[str]:
     warehouse/feature store as volumes grow."""
     all_person_ids = [p.person_id for p in db.query(models.Person.person_id).all()]
     return [pid for pid in all_person_ids if person_matches(db, pid, rule)]
+
+
+def consent_signal() -> str:
+    return os.getenv("CONSENT_SIGNAL", "marketing_consent")
+
+
+def split_by_consent(db: Session, person_ids: List[str]):
+    """Returns (consented, excluded). Someone with no consent signal on file
+    counts as NOT consented, so missing data never leads to over-targeting."""
+    name = consent_signal()
+    consented, excluded = [], []
+    for pid in person_ids:
+        (consented if _latest_value(db, pid, name) == 1.0 else excluded).append(pid)
+    return consented, excluded

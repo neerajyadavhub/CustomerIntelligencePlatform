@@ -69,9 +69,23 @@ Upload orders and get scores back, no data science team needed. These are transp
 | RFM | `rfm_recency`, `rfm_frequency`, `rfm_monetary` (1-5) plus a segment (champions, loyal, new, at risk, lapsed) | `days_since_last_order`, `orders`, `total_spend` |
 | Churn risk | `churn_risk` (0-1) | `days_since_last_order`, `orders` (`tenure_days` improves it) |
 | Lifetime value | `clv_12m` (expected revenue, next 12 months) | above plus `total_spend` |
+| Win-back timing | `days_past_expected_gap`, `winback_due` (1 = overdue but not yet lost) | `days_since_last_order`, `orders` (2+), `tenure_days` |
 | Discount sensitivity | `discount_sensitivity` (0-1) | `orders`, `promo_orders` |
 
 Scores are ordinary model scores, so audiences can use them directly, e.g. `churn_risk > 0.7` and `clv_12m > 500`. Formulas are documented in [`cgid-api/app/scoring.py`](cgid-api/app/scoring.py). To use your own trained model instead, ingest its output as `score:<name>` columns.
+
+## Use cases and how to do them
+
+| Use case | How |
+|---|---|
+| **Paid media suppression** | Create an audience `orders > 0`, then `GET /audience/{id}/export?purpose=suppress`. Upload the hashed CSV as an exclusion list in Meta or Google so acquisition spend skips existing customers. |
+| **Lookalike seeds** | Create an audience of your best customers (e.g. `clv_12m > 500`), then `GET /audience/{id}/export?purpose=target`. Upload as the seed for a lookalike audience. |
+| **Consent-aware activation** | Syncs and `target` exports include only people whose `marketing_consent` signal is `1`. Missing consent counts as no consent. The sync response reports `excluded_no_consent`. |
+| **Duplicate cleanup** | `GET /identity/duplicates` (or **Import Data > Duplicate report**): accounts vs. real people, and the most-linked people. |
+| **Win-back timing** | Run the models, then build an audience `winback_due = 1`. |
+| **Reactivation, offer eligibility** | `POST /decision/evaluate` with the built-in rules; every decision is logged with its reason. |
+
+Exports are hashed files (SHA-256 emails and phones) for **manual upload**; there is no live push to Meta or Google yet. Check each platform's current upload spec before a production upload. Not built yet: real channel sync, outreach triggers/sending, multi-tenancy (agency reporting).
 
 ## Configuration
 
@@ -82,6 +96,8 @@ Scores are ordinary model scores, so audiences can use them directly, e.g. `chur
 | `METRICS_MODE` | `mock` | `mock` or `meta` (stub) |
 | `CORS_ORIGINS` | `*` | Comma-separated allowed origins |
 | `SEED_DEMO_DATA` / `SEED_ALLOW_RESET` | unset | Demo seeding. **Wipes the database.** Never use on real data |
+| `CONSENT_SIGNAL` | `marketing_consent` | Name of the signal that records consent (1 = opted in) |
+| `DEFAULT_PHONE_COUNTRY_CODE` | `1` | Country code added to 10-digit phone numbers before hashing |
 | `API_KEYS` | unset (open) | Comma-separated API keys; set this for any real deployment |
 | `PORT` | `8000` | Container listen port |
 

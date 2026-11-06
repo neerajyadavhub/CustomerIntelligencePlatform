@@ -101,6 +101,10 @@ class AudiencePreview(BaseModel):
 
 
 class ChannelSyncRequest(BaseModel):
+    # Syncing to a channel is marketing to those people, so consent is required.
+    # Set false only for channels that need no consent (e.g. suppression lists).
+    enforce_consent: bool = True
+
     channel: str
 
 
@@ -112,6 +116,9 @@ class ChannelSyncOut(BaseModel):
     matched_count: int
     total_count: int
     synced_at: dt.datetime
+    # People left out of this sync because they have no marketing consent.
+    # Only reported on the sync response itself (null when listing past syncs).
+    excluded_no_consent: Optional[int] = None
 
 
 class PerformancePoint(BaseModel):
@@ -193,3 +200,19 @@ class ModelRunResult(BaseModel):
     skipped: dict
     rfm_segments: dict
     model_version: str
+
+
+# -------------------------------------------------------------- duplicates
+class DuplicateGroup(BaseModel):
+    person_id: str
+    accounts: int
+    emails: list[str]
+
+
+class DuplicateReport(BaseModel):
+    accounts: int
+    people: int
+    duplicate_accounts: int
+    duplicate_rate: float
+    people_with_multiple_accounts: int
+    largest_groups: list[DuplicateGroup]

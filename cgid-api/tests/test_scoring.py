@@ -29,7 +29,7 @@ def test_formulas_by_hand():
 
 def test_catalog_endpoint(client):
     body = client.get("/models").json()
-    assert set(body["models"]) == {"rfm", "churn_risk", "clv", "discount"}
+    assert set(body["models"]) == {"rfm", "churn_risk", "clv", "discount", "winback"}
 
 
 def test_run_writes_scores_and_ranks(client):

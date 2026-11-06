@@ -99,3 +99,12 @@ def test_api_key_auth(client, monkeypatch):
 def test_open_when_no_keys(client, monkeypatch):
     monkeypatch.delenv("API_KEYS", raising=False)
     assert client.get("/audience").status_code == 200
+
+
+def test_new_email_on_shared_phone_is_kept_as_linked_account(client):
+    ingest(client, [{"email": "first@example.com", "phone": "555-444-5555"}])
+    ingest(client, [{"email": "second@example.com", "phone": "(555) 444 5555"}])
+    a = client.get("/identity/lookup", params={"identifier": "first@example.com"}).json()
+    b = client.get("/identity/lookup", params={"identifier": "second@example.com"}).json()
+    assert a["person_id"] == b["person_id"]
+    assert {i["email"] for i in a["identities"]} == {"first@example.com", "second@example.com"}

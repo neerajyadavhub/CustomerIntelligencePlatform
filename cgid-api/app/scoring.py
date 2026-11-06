@@ -19,6 +19,7 @@ Models and the scores they write:
   churn_risk     churn_risk                                  (0-1)
   clv            clv_12m                                     (expected revenue, next 12 months)
   discount       discount_sensitivity                        (0-1)
+  winback        days_past_expected_gap, winback_due         (needs 2+ orders and tenure_days)
 
 Formulas are deliberately simple so you can explain every number:
   expected_gap  = max((tenure_days - days_since_last_order) / (orders - 1), 7)
@@ -27,6 +28,8 @@ Formulas are deliberately simple so you can explain every number:
   churn_risk    = min(1, days_since_last_order / (3 * expected_gap))
   clv_12m       = avg_order_value * (365 / expected_gap) * (1 - churn_risk)
   discount_sens = promo_orders / orders
+  days_past_expected_gap = days_since_last_order - expected_gap   (negative = not yet due)
+  winback_due   = 1 when days_past_expected_gap >= 0 and churn_risk < 1, else 0
 """
 from collections import Counter
 from typing import Dict, List, Optional
@@ -55,6 +58,12 @@ CATALOG = {
         "requires": ["days_since_last_order", "orders", "total_spend"],
         "optional": ["tenure_days"],
         "writes": ["clv_12m"],
+    },
+    "winback": {
+        "description": "Win-back timing: days past the customer's usual gap between orders, and a flag for customers who are overdue but not yet lost.",
+        "requires": ["days_since_last_order", "orders", "tenure_days"],
+        "min_orders": 2,
+        "writes": ["days_past_expected_gap", "winback_due"],
     },
     "discount": {
         "description": "Share of orders placed on a promotion (0-1).",
@@ -180,6 +189,18 @@ def run_models(db: Session, which: Optional[List[str]] = None) -> dict:
                 scored_ids.add(pid)
             else:
                 skipped[model] += 1
+
+    if "winback" in which:
+        spec = CATALOG["winback"]
+        for pid, sg in sigs.items():
+            if _has(sg, spec["requires"]) and sg["orders"] >= spec["min_orders"]:
+                past = round(sg["days_since_last_order"] - expected_gap(sg), 2)
+                _upsert(by_id[pid], "days_past_expected_gap", past, now)
+                _upsert(by_id[pid], "winback_due", 1.0 if (past >= 0 and _churn_raw(sg) < 1) else 0.0, now)
+                ran["winback"] += 1
+                scored_ids.add(pid)
+            else:
+                skipped["winback"] += 1
 
     db.commit()
     return {

@@ -10,6 +10,9 @@ may include breaking changes.
 - Project renamed to **Customer Graph ID** (previously "Smart Engine"/"PersonGraph"): backend folder is now `cgid-api/`, Docker image `cgid-api`, default database/user names `cgid`. Demo data uses generic `CUST-` customer IDs.
 
 ### Added
+- Consent enforcement on channel syncs (`enforce_consent`, default on) with `excluded_no_consent` reporting.
+- Hashed audience exports: `GET /audience/{id}/export?purpose=target|suppress`.
+- `GET /identity/duplicates` report and a **Duplicate report** button; win-back timing model.
 - Built-in formula models (RFM, churn risk, 12-month lifetime value, discount sensitivity): `GET /models`, `POST /models/run`, and a **Score customers** button in the UI.
 - **Import Data** screen in the UI (CSV upload/paste, merge toggle, per-row errors, API key entry). The UI now uses its own origin as the API when the API serves it.
 - Bring-your-own-data ingestion: `POST /ingest/records` and `/ingest/csv` with normalized email/phone matching, automatic merge of linked people, and conflict reporting.
@@ -29,6 +32,7 @@ may include breaking changes.
 - Failed channel syncs no longer produce performance data.
 
 ### Fixed
+- Ingest dropped a new email when the record shared a phone with an existing account; it is now kept as a linked account.
 - Pinned `psycopg2-binary` 2.9.10 (2.9.9 does not build on Python 3.13).
 - Removed deprecated `datetime.utcnow()` usage.
 

@@ -68,14 +68,28 @@ def _merge(db: Session, survivor: models.Person, loser: models.Person) -> None:
     db.flush()
 
 
+def _conflicts(existing, incoming) -> bool:
+    return bool(existing and incoming and existing != incoming)
+
+
 def _upsert_identity(person: models.Person, rec: dict, email_n, phone_n) -> None:
+    """Update the account this record describes, or add it as a new linked
+    account. An existing account is only reused when none of its identifiers
+    conflict with the record's: a record with a new email but a shared phone
+    is a different account of the same person, so its email must be kept."""
     ext = rec.get("external_user_id")
     for ident in person.identities:
-        if (
+        matches = (
             (ext and ident.external_user_id == ext)
             or (email_n and ident.email_norm == email_n)
             or (phone_n and ident.phone_norm == phone_n)
-        ):
+        )
+        conflict = (
+            _conflicts(ident.external_user_id, ext)
+            or _conflicts(ident.email_norm, email_n)
+            or _conflicts(ident.phone_norm, phone_n)
+        )
+        if matches and not conflict:
             ident.external_user_id = ident.external_user_id or ext
             ident.email = ident.email or rec.get("email")
             ident.phone = ident.phone or rec.get("phone")
