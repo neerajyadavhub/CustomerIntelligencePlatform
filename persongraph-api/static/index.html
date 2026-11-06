@@ -441,6 +441,29 @@ tr:last-child td{border-bottom:none;}
         </div>
       </div>
 
+      <div class="view" id="v-import" data-app="cdp">
+        <div class="view-head"><div class="view-eyebrow">DATA · BRING YOUR OWN</div><h1 class="view-title">Import Data</h1></div>
+        <div class="card">
+          <div class="card-title">Load people from CSV <span class="tag" id="importApiTag">needs live API</span></div>
+          <p style="font-size:13px; color:var(--text-dim); margin:0 0 12px; line-height:1.5">
+            Columns: <span class="mono">email</span>, <span class="mono">phone</span>, <span class="mono">external_user_id</span>, <span class="mono">account_type</span>;
+            <span class="mono">score:&lt;model&gt;</span> columns become model scores; any other column is a numeric signal.
+            Rows sharing an email, phone or ID are merged into one Person ID.
+          </p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px">
+            <input type="file" id="importFile" accept=".csv,text/csv" style="font-size:12.5px">
+            <button class="btn-secondary" id="importSample" style="padding:8px 12px; border:none; border-radius:8px; cursor:pointer; font-weight:600; background:#F1F3F8">Use sample data</button>
+          </div>
+          <textarea id="importText" rows="8" spellcheck="false" placeholder="email,phone,orders,score:propensity_to_convert&#10;ada@example.com,206-555-0100,4,0.92" style="width:100%; box-sizing:border-box; font-family:'IBM Plex Mono',monospace; font-size:12px; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--text)"></textarea>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px">
+            <input type="password" id="importKey" placeholder="API key (only if your server sets API_KEYS)" style="flex:1; min-width:220px; padding:9px 10px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; background:var(--card); color:var(--text)">
+            <label style="font-size:12.5px; color:var(--text-dim)"><input type="checkbox" id="importMerge" checked> merge people who share an identifier</label>
+            <button class="btn-primary" id="importRun" style="background:var(--ink); color:#fff; border:none; padding:10px 18px; border-radius:8px; font-weight:600; cursor:pointer">Import</button>
+          </div>
+          <div id="importResult" style="margin-top:14px; font-size:13px; line-height:1.6"></div>
+        </div>
+      </div>
+
       <div class="view" id="v-mk-library" data-app="marketing">
         <div class="view-head"><div class="view-eyebrow">02 · SAVED AUDIENCES</div><h1 class="view-title">Audience Library</h1></div>
         <div class="card">
@@ -553,16 +576,28 @@ const _isLocalHost = ['localhost', '127.0.0.1', ''].includes(window.location.hos
 // live backend for every visitor automatically, with no ?api= needed.
 const DEFAULT_PROD_API = 'https://your-persongraph-api.onrender.com';
 const DEFAULT_LOCAL_API = 'http://127.0.0.1:8000';
-const API_BASE = _params.get('api') || (_isLocalHost ? DEFAULT_LOCAL_API : DEFAULT_PROD_API);
+// Resolution order: ?api= override, then GitHub Pages -> DEFAULT_PROD_API,
+// then any other http(s) host (the API serving its own UI) -> same origin,
+// otherwise (file://) -> local default.
+const _onPages = window.location.hostname.endsWith('github.io');
+const _selfHosted = /^https?:$/.test(window.location.protocol) && !_onPages;
+const API_BASE = _params.get('api') || (_onPages ? DEFAULT_PROD_API : (_selfHosted ? window.location.origin : DEFAULT_LOCAL_API));
 let apiConnected = false;
 
+function apiKey(){ try{ return localStorage.getItem('pg_api_key') || ''; }catch(e){ return ''; } }
+function authHeaders(extra){
+  const h = Object.assign({}, extra || {});
+  const k = apiKey();
+  if(k) h['Authorization'] = 'Bearer ' + k;
+  return h;
+}
 async function apiGet(path){
-  const res = await fetch(API_BASE + path);
+  const res = await fetch(API_BASE + path, {headers: authHeaders()});
   if(!res.ok) throw new Error('API ' + res.status);
   return res.json();
 }
 async function apiPost(path, body){
-  const res = await fetch(API_BASE + path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const res = await fetch(API_BASE + path, {method:'POST', headers:authHeaders({'Content-Type':'application/json'}), body: JSON.stringify(body)});
   if(!res.ok) throw new Error('API ' + res.status);
   return res.json();
 }
@@ -773,7 +808,7 @@ document.getElementById('measureAudienceSelect').addEventListener('change', ()=>
 renderMeasureChart(DEMO_MEASURE_DAYS);
 
 const navConfig = {
-  cdp: [{view:'v-360', label:'Customer 360'},{view:'v-signals', label:'Signals & Models'},{view:'v-decision', label:'Decision Layer'},{view:'v-activation', label:'Activation'},{view:'v-explain', label:'Explainability'}],
+  cdp: [{view:'v-360', label:'Customer 360'},{view:'v-signals', label:'Signals & Models'},{view:'v-import', label:'Import Data'},{view:'v-decision', label:'Decision Layer'},{view:'v-activation', label:'Activation'},{view:'v-explain', label:'Explainability'}],
   rep: [{view:'v-rep-search', label:'Customer Search'},{view:'v-rep-profile', label:'Unified Profile'},{view:'v-rep-escalation', label:'Escalations'}],
   marketing: [{view:'v-mk-builder', label:'Audience Builder'},{view:'v-mk-library', label:'Audience Library'},{view:'v-mk-channels', label:'Channel Sync'},{view:'v-mk-measure', label:'Measurement'}]
 };
@@ -812,6 +847,38 @@ async function openRepProfile(personId){
     catch(e){ /* leave static demo content in place */ }
   }
 }
+
+// ---- Import Data view -------------------------------------------------
+const SAMPLE_CSV = 'email,phone,external_user_id,orders,days_since_last_activity,score:propensity_to_convert\n' +
+  'ada@example.com,206-555-0100,CUST-1,4,12,0.92\n' +
+  'ada.work@example.com,(206) 555 0100,,,,\n' +
+  'grace@example.com,,CUST-2,1,95,0.35\n';
+document.getElementById('importSample').addEventListener('click', ()=>{ document.getElementById('importText').value = SAMPLE_CSV; });
+document.getElementById('importFile').addEventListener('change', async (e)=>{
+  const f = e.target.files[0];
+  if(f) document.getElementById('importText').value = await f.text();
+});
+document.getElementById('importKey').value = apiKey();
+document.getElementById('importRun').addEventListener('click', async ()=>{
+  const out = document.getElementById('importResult');
+  const text = document.getElementById('importText').value.trim();
+  if(!text){ out.textContent = 'Paste or choose a CSV first.'; return; }
+  const key = document.getElementById('importKey').value.trim();
+  try{ key ? localStorage.setItem('pg_api_key', key) : localStorage.removeItem('pg_api_key'); }catch(e){}
+  if(!apiConnected){ out.textContent = 'No live API connected. Run the backend (docker compose up) and open this page from it, or add ?api=<your server URL>.'; return; }
+  out.textContent = 'Importing…';
+  try{
+    const merge = document.getElementById('importMerge').checked;
+    const res = await fetch(API_BASE + '/ingest/csv?auto_merge=' + merge, {method:'POST', headers:authHeaders({'Content-Type':'text/csv'}), body:text});
+    if(res.status === 401){ out.textContent = 'The server requires an API key (401). Enter it above.'; return; }
+    if(!res.ok){ out.textContent = 'Import failed: ' + res.status + ' ' + (await res.text()); return; }
+    const r = await res.json();
+    const esc = t => String(t).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    out.innerHTML = `<b>${r.received}</b> rows · <b>${r.created}</b> new people · <b>${r.updated}</b> updated · <b>${r.merged}</b> merged` +
+      (r.errors.length ? `<br><span style="color:#B3261E">${r.errors.length} row(s) skipped:</span><br>` + r.errors.slice(0,10).map(x=>`row ${x.index+1}: ${esc(x.error)}`).join('<br>') : '');
+  }catch(e){ out.textContent = 'Could not reach the API: ' + e.message; }
+});
+
 renderNav();
 checkApiConnection();
 

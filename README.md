@@ -50,7 +50,7 @@ uvicorn app.main:app --reload
 export API_KEYS=$(openssl rand -hex 32)
 docker compose up --build        # or run uvicorn; remove the demo SEED_* lines for real data
 
-# 2. Load people. Matching is on normalized email / phone / external_user_id;
+# 2. Load people (or use CDP > Import Data in the UI at http://localhost:8000). Matching is on normalized email / phone / external_user_id;
 #    records that share an identifier are merged into one Person ID.
 curl -X POST localhost:8000/ingest/csv -H "Authorization: Bearer $API_KEYS" \
   -H "Content-Type: text/csv" --data-binary @customers.csv
@@ -82,7 +82,7 @@ See [`persongraph-api/.env.example`](persongraph-api/.env.example).
 
 ## Limitations
 
-- Authentication is a shared API key only (`API_KEYS`): no users, roles, or multi-tenancy. The bundled demo UI doesn't send a key, so it stops working when `API_KEYS` is set.
+- Authentication is a shared API key only (`API_KEYS`): no users, roles, or multi-tenancy. The bundled UI keeps your key in this browser only (enter it on the Import Data screen).
 - Channel sync and performance data are mocked; Meta/Segment adapters are stubs.
 - Audience rules are ANDed numeric conditions only.
 - Docker image is built and smoke-tested in CI; it was not built locally by the author.

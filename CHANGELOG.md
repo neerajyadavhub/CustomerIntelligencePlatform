@@ -7,6 +7,7 @@ may include breaking changes.
 ## [Unreleased]
 
 ### Added
+- **Import Data** screen in the UI (CSV upload/paste, merge toggle, per-row errors, API key entry). The UI now uses its own origin as the API when the API serves it.
 - Bring-your-own-data ingestion: `POST /ingest/records` and `/ingest/csv` with normalized email/phone matching, automatic merge of linked people, and conflict reporting.
 - Optional API-key authentication (`API_KEYS`).
 - `render.yaml` one-click deploy; Docker image published to GHCR on `v*` tags.
