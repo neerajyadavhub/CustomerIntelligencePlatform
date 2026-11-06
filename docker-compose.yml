@@ -30,7 +30,7 @@ services:
     environment:
       DATABASE_URL: postgresql://cgid:cgid@db:5432/cgid
       RESOLVER_MODE: mock
-      METRICS_MODE: mock
+      META_MODE: mock
       # Demo only. Wipes and reseeds the database above on every start.
       SEED_DEMO_DATA: "true"
       SEED_ALLOW_RESET: "true"

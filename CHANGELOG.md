@@ -10,6 +10,9 @@ may include breaking changes.
 - Project renamed to **Customer Graph ID** (previously "Smart Engine"/"PersonGraph"): backend folder is now `cgid-api/`, Docker image `cgid-api`, default database/user names `cgid`. Demo data uses generic `CUST-` customer IDs.
 
 ### Added
+- **Meta integration:** hashed Custom Audience upload (create, then replace on re-sync), audience size refresh, ad-set discovery and daily insights pull into the Measurement view, plain-English Meta error hints. Enable with `META_MODE=live`; guide in `docs/META-SETUP.md`.
+- `python -m app.doctor [--meta-write-test]` setup check; `docker-compose.customer.yml` for real deployments (no demo data, API key required, localhost-only).
+- Automatic schema upgrade for databases created by older versions.
 - Consent enforcement on channel syncs (`enforce_consent`, default on) with `excluded_no_consent` reporting.
 - Hashed audience exports: `GET /audience/{id}/export?purpose=target|suppress`.
 - `GET /identity/duplicates` report and a **Duplicate report** button; win-back timing model.

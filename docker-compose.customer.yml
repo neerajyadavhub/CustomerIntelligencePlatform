@@ -1,0 +1,46 @@
+# Real-data deployment (no demo data, API key required, Postgres persisted).
+#
+#   cp .env.example .env        # fill in the values, see docs/META-SETUP.md
+#   docker compose -f docker-compose.customer.yml up -d --build
+#   docker compose -f docker-compose.customer.yml run --rm api python -m app.doctor --meta-write-test
+#
+# The API listens on 127.0.0.1 only. Put a TLS reverse proxy (Caddy, nginx, a
+# cloud load balancer) in front of it before exposing it to the internet.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cgid
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: cgid
+    volumes:
+      - cgid_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cgid -d cgid"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: ./cgid-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://cgid:${POSTGRES_PASSWORD}@db:5432/cgid
+      API_KEYS: ${API_KEYS:?Set API_KEYS in .env (openssl rand -hex 32)}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      CONSENT_SIGNAL: ${CONSENT_SIGNAL:-marketing_consent}
+      META_MODE: ${META_MODE:-mock}
+      META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
+      META_AD_ACCOUNT_ID: ${META_AD_ACCOUNT_ID:-}
+      META_API_VERSION: ${META_API_VERSION:-v25.0}
+      META_CONVERSION_ACTION: ${META_CONVERSION_ACTION:-purchase}
+    ports:
+      - "127.0.0.1:${PORT:-8000}:8000"
+    restart: unless-stopped
+
+volumes:
+  cgid_data:

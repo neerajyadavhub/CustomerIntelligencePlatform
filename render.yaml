@@ -17,7 +17,7 @@ services:
         generateValue: true
       - key: RESOLVER_MODE
         value: mock
-      - key: METRICS_MODE
+      - key: META_MODE
         value: mock
 databases:
   - name: cgid-db

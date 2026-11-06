@@ -43,6 +43,10 @@ python -m app.seed
 uvicorn app.main:app --reload
 ```
 
+## Connect it to Meta
+
+Full walkthrough for a company with a Meta ad account: **[docs/META-SETUP.md](docs/META-SETUP.md)**. Short version: create a Meta app and system-user token, copy `.env.example` to `.env`, run `docker compose -f docker-compose.customer.yml up -d --build`, then `docker compose -f docker-compose.customer.yml run --rm api python -m app.doctor --meta-write-test` to verify everything before your first upload. Audiences go to Meta hashed and consent-filtered; performance comes back into the Measurement view.
+
 ## Use it with your own data
 
 ```bash
@@ -93,7 +97,7 @@ Exports are hashed files (SHA-256 emails and phones) for **manual upload**; ther
 |---|---|---|
 | `DATABASE_URL` | local SQLite | Postgres URL for real deployments |
 | `RESOLVER_MODE` | `mock` | `mock` or `segment` (stub) |
-| `METRICS_MODE` | `mock` | `mock` or `meta` (stub) |
+| `META_MODE` | `mock` | `live` to upload to and report from Meta (also needs `META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`) |
 | `CORS_ORIGINS` | `*` | Comma-separated allowed origins |
 | `SEED_DEMO_DATA` / `SEED_ALLOW_RESET` | unset | Demo seeding. **Wipes the database.** Never use on real data |
 | `CONSENT_SIGNAL` | `marketing_consent` | Name of the signal that records consent (1 = opted in) |
@@ -112,7 +116,7 @@ See [`cgid-api/.env.example`](cgid-api/.env.example).
 ## Limitations
 
 - Authentication is a shared API key only (`API_KEYS`): no users, roles, or multi-tenancy. The bundled UI keeps your key in this browser only (enter it on the Import Data screen).
-- Channel sync and performance data are mocked; Meta/Segment adapters are stubs.
+- Meta is the only real channel, and its integration is tested against simulated responses, not yet a live account. Other channels and the Segment adapter are simulated or stubs.
 - Audience rules are ANDed numeric conditions only.
 - Docker image is built and smoke-tested in CI; it was not built locally by the author.
 

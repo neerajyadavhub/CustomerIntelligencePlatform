@@ -113,11 +113,11 @@ Copy `.env.example` to `.env` and adjust:
 - `RESOLVER_MODE` — `mock` (default, uses seeded local data) or
   `segment` (stub — needs the TODOs in `identity_resolver.py` finished).
 - `SEGMENT_API_KEY`, `SEGMENT_SPACE_ID` — only used by the Segment resolver.
-- `METRICS_MODE` — `mock` (default, generates a realistic performance
-  curve) or `meta` (stub — needs the TODOs in `measurement_engine.py`
-  finished, plus `META_ACCESS_TOKEN`/`META_AD_ACCOUNT_ID` below).
-- `META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID` — only used by the Meta
-  Insights provider.
+- `META_MODE` — `mock` (default, simulates Meta syncs and performance) or
+  `live` (uploads hashed audiences to Meta and pulls real insights). Needs
+  `META_ACCESS_TOKEN` and `META_AD_ACCOUNT_ID`; optional `META_API_VERSION`,
+  `META_CONVERSION_ACTION`. Setup guide: `../docs/META-SETUP.md`.
+- `python -m app.doctor [--meta-write-test]` checks your setup and explains fixes.
 
 ## Deploying (Render, Railway, Fly.io — any Docker host)
 
@@ -174,15 +174,12 @@ small interface as `IdentityResolver`: `backfill(db, sync)` (called once
 right after a sync) and `pull_latest(db, sync)` (called on a schedule to
 refresh recent days). `MockMetricsProvider` is the default — it generates
 a plausible 14-day curve from the sync's own `matched_count` so the
-dashboard has real-looking numbers with no external credentials. To go
-live, finish `MetaInsightsProvider` (or write an equivalent for Google
-Ads/your ESP) against that channel's real reporting API — the module's
-docstring spells out the call pattern, including the one thing a real
-`sync()` has to do differently from today's mock: store the external
-campaign/ad-set id the channel hands back, since that's what the
-reporting API is queried by. Switch `METRICS_MODE=meta` once implemented;
-every route calls `get_metrics_provider()` rather than a concrete class,
-so nothing else changes.
+dashboard has real-looking numbers with no external credentials. With
+`META_MODE=live`, syncs to `meta_ads` upload to a real Meta Custom Audience and
+the Measurement view pulls real insights for the ad sets that target it
+(`MetaInsightsProvider`, routed per channel; other channels stay simulated).
+Every route calls `get_metrics_provider()` rather than a concrete class, so
+adding Google Ads or an ESP means writing one more provider.
 
 ## A note on provenance
 

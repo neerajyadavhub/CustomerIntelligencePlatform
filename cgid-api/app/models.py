@@ -130,6 +130,10 @@ class ChannelSync(Base):
     matched_count = Column(Integer, default=0)
     total_count = Column(Integer, default=0)
     synced_at = Column(DateTime, default=utcnow)
+    # Set by real channel integrations (e.g. Meta): the audience id on the
+    # platform and a plain-English status/next step.
+    external_audience_id = Column(String, nullable=True)
+    external_status = Column(String, nullable=True)
 
     audience = relationship("Audience", back_populates="syncs")
     metrics = relationship("PerformanceMetric", back_populates="sync", cascade="all, delete-orphan")

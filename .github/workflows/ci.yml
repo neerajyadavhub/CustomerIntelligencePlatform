@@ -96,3 +96,8 @@ jobs:
           curl -fsS "http://localhost:8000/identity/lookup?identifier=jordyn@personalmail.com" | grep PER-4471
           docker compose logs api
           docker compose down -v
+
+      - name: Customer compose file is valid
+        run: |
+          POSTGRES_PASSWORD=x API_KEYS=y docker compose -f docker-compose.customer.yml config > /dev/null
+          docker compose -f docker-compose.customer.yml config 2>&1 | grep -q "Set API_KEYS"

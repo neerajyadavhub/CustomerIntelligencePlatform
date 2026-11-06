@@ -111,6 +111,7 @@ class ChannelSyncRequest(BaseModel):
 class ChannelSyncOut(BaseModel):
     model_config = ORM
 
+    id: int
     channel: str
     status: str
     matched_count: int
@@ -119,6 +120,9 @@ class ChannelSyncOut(BaseModel):
     # People left out of this sync because they have no marketing consent.
     # Only reported on the sync response itself (null when listing past syncs).
     excluded_no_consent: Optional[int] = None
+    # Real channels (Meta): the platform's audience id and a plain-English status / next step.
+    external_audience_id: Optional[str] = None
+    external_status: Optional[str] = None
 
 
 class PerformancePoint(BaseModel):

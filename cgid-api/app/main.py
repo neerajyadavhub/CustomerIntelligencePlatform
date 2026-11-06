@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
-from . import models, schemas, decision_engine, audience_engine, measurement_engine, ingest, scoring, exports
+from . import models, schemas, decision_engine, audience_engine, measurement_engine, ingest, scoring, exports, channels, meta, migrate
 from .auth import install_auth
 from .clock import utcnow
 from .database import Base, engine, get_db
@@ -27,6 +27,7 @@ from .identity_resolver import get_resolver
 from .measurement_engine import get_metrics_provider
 
 Base.metadata.create_all(bind=engine)
+migrate.ensure_columns(engine)  # upgrade databases created by older versions
 
 
 def cors_origins_from_env() -> list:
@@ -197,25 +198,26 @@ def sync_audience(audience_id: str, req: schemas.ChannelSyncRequest, db: Session
     # Real integration point: call the channel's API here (Meta Conversions API,
     # Google Ads Customer Match, your ESP's API, etc). This mock marks 92% as
     # successfully matched, mirroring real hashed-email match rates.
-    matched_count = int(len(matched) * 0.92)
-    sync = models.ChannelSync(
-        audience_id=audience.id,
-        channel=req.channel,
-        status="synced" if matched else "failed",
-        matched_count=matched_count,
-        total_count=len(matched),
-        synced_at=utcnow(),
-    )
-    db.add(sync)
-    db.commit()
-    db.refresh(sync)
+    if req.channel == channels.CHANNEL and meta.is_live():
+        sync = _sync_to_meta(db, audience, matched)
+    else:
+        matched_count = int(len(matched) * 0.92)
+        sync = models.ChannelSync(
+            audience_id=audience.id,
+            channel=req.channel,
+            status="synced" if matched else "failed",
+            matched_count=matched_count,
+            total_count=len(matched),
+            synced_at=utcnow(),
+        )
+        db.add(sync)
+        db.commit()
+        db.refresh(sync)
 
     # Kick off performance measurement for this sync. The mock provider
-    # backfills a realistic 14-day curve immediately; a real provider
-    # would instead record the external campaign id here and let a
-    # scheduled pull_latest() populate it over time.
-    # A sync that matched nobody is recorded as failed and has nothing to
-    # measure, so it must not get performance data.
+    # backfills a realistic 14-day curve immediately; the Meta provider
+    # pulls real insights (none until an ad set targets the audience).
+    # A sync that failed has nothing to measure.
     if sync.status == "synced":
         metrics_provider.backfill(db, sync)
 
@@ -368,3 +370,64 @@ def duplicate_report(db: Session = Depends(get_db)):
             for pid, v in largest
         ],
     )
+
+
+# ------------------------------------------------------------------- meta
+def _sync_to_meta(db: Session, audience: models.Audience, person_ids: list) -> models.ChannelSync:
+    sync = models.ChannelSync(
+        audience_id=audience.id, channel=channels.CHANNEL, status="failed",
+        matched_count=0, total_count=len(person_ids), synced_at=utcnow(),
+    )
+    if not person_ids:
+        sync.external_status = "No one in this audience to upload (after consent filtering)."
+    else:
+        try:
+            result = channels.push_to_meta(db, meta.get_client(), audience, person_ids)
+            sync.status = "synced"
+            sync.matched_count = result["uploaded"]
+            sync.external_audience_id = result["external_audience_id"]
+            sync.external_status = result["status"]
+        except meta.MetaError as exc:
+            sync.external_status = f"Meta upload failed: {exc}"
+    db.add(sync)
+    db.commit()
+    db.refresh(sync)
+    return sync
+
+
+@app.post("/syncs/{sync_id}/refresh", response_model=schemas.ChannelSyncOut, tags=["audience"])
+def refresh_sync(sync_id: int, db: Session = Depends(get_db)):
+    """Re-read a Meta sync's audience from Meta: matched size and processing status."""
+    sync = db.query(models.ChannelSync).filter(models.ChannelSync.id == sync_id).first()
+    if not sync:
+        raise HTTPException(status_code=404, detail="Sync not found.")
+    if not sync.external_audience_id:
+        raise HTTPException(status_code=400, detail="This sync has no external audience to refresh.")
+    if not meta.is_live():
+        raise HTTPException(status_code=400, detail="META_MODE is not 'live'.")
+    try:
+        info = meta.get_client().get_audience(sync.external_audience_id)
+    except meta.MetaError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    low = info.get("approximate_count_lower_bound")
+    status = (info.get("operation_status") or {}).get("description")
+    if isinstance(low, int) and low > 0:
+        sync.matched_count = low
+        sync.external_status = f"Meta audience {sync.external_audience_id}: about {low:,} matched people. {status or ''}".strip()
+    else:
+        sync.external_status = f"Meta audience {sync.external_audience_id} is still processing (no size yet). {status or ''}".strip()
+    db.commit()
+    db.refresh(sync)
+    return sync
+
+
+@app.get("/channels/meta", tags=["channels"])
+def meta_status():
+    """Is Meta configured, and can the token see the ad account?"""
+    out = {"mode": meta.env_mode(), "api_version": os.getenv("META_API_VERSION", meta.DEFAULT_VERSION)}
+    if not meta.is_live():
+        return {**out, "connected": False, "detail": "META_MODE is not 'live'; Meta syncs are simulated."}
+    try:
+        return {**out, "connected": True, "account": meta.get_client().check()}
+    except meta.MetaError as exc:
+        return {**out, "connected": False, "detail": str(exc)}

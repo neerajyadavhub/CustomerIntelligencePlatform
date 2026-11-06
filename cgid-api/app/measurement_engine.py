@@ -107,26 +107,100 @@ class MockMetricsProvider(MetricsProvider):
 
 
 class MetaInsightsProvider(MetricsProvider):
-    """Real provider stub. Needs a system-user access token with
-    ads_read permission and the ad account id — see the module docstring
-    for the call pattern and what a real sync() needs to store first.
-    Swap MockMetricsProvider() for this in main.py once implemented."""
+    """Pulls real performance from Meta for a synced audience.
 
-    def __init__(self):
-        self.access_token = os.getenv("META_ACCESS_TOKEN")
-        self.ad_account_id = os.getenv("META_AD_ACCOUNT_ID")
+    How it works: find the ad sets in the ad account whose targeting includes
+    the sync's Meta Custom Audience, pull their daily insights since the sync
+    date, add them up per day, and upsert one PerformanceMetric per day
+    (overwriting, because Meta revises recent days). Conversions and revenue
+    count the action type set in META_CONVERSION_ACTION (default: purchase).
+    Pulls are rate-limited per sync (META_PULL_MIN_MINUTES, default 15)."""
+
+    _last_pull: dict = {}
+
+    def __init__(self, client=None):
+        self.client = client
+
+    def _client(self):
+        if self.client is None:
+            from .meta import get_client
+            self.client = get_client()
+        return self.client
 
     def backfill(self, db: Session, sync: models.ChannelSync) -> int:
-        raise NotImplementedError("Wire this up to the Meta Marketing API Insights endpoint.")
+        return self.pull_latest(db, sync)
 
     def pull_latest(self, db: Session, sync: models.ChannelSync) -> int:
-        raise NotImplementedError("Wire this up to the Meta Marketing API Insights endpoint.")
+        from .meta import MetaError
+        if not sync.external_audience_id:
+            return 0
+        min_minutes = float(os.getenv("META_PULL_MIN_MINUTES", "15"))
+        last = self._last_pull.get(sync.id)
+        if last and (utcnow() - last).total_seconds() < min_minutes * 60:
+            return 0
+        self._last_pull[sync.id] = utcnow()
+        try:
+            client = self._client()
+            adsets = client.adsets_using_audience(sync.external_audience_id)
+            if not adsets:
+                sync.external_status = (
+                    f"No ad sets target Meta audience {sync.external_audience_id} yet. "
+                    "Create a campaign in Ads Manager that targets it; results will appear here."
+                )
+                db.commit()
+                return 0
+            since = sync.synced_at.date().isoformat()
+            until = utcnow().date().isoformat()
+            action = os.getenv("META_CONVERSION_ACTION", "purchase")
+            days: dict = {}
+            for adset in adsets:
+                for r in client.adset_insights(adset["id"], since, until, action):
+                    d = days.setdefault(r["date"], dict(impressions=0, clicks=0, spend=0.0, conversions=0, revenue=0.0))
+                    for k in d:
+                        d[k] += r[k]
+        except MetaError as exc:
+            sync.external_status = f"Could not pull Meta insights: {exc}"
+            db.commit()
+            return 0
+        written = 0
+        for date_str, vals in days.items():
+            date = dt.datetime.fromisoformat(date_str)
+            row = (
+                db.query(models.PerformanceMetric)
+                .filter(models.PerformanceMetric.sync_id == sync.id, models.PerformanceMetric.date == date)
+                .first()
+            )
+            if row is None:
+                row = models.PerformanceMetric(sync_id=sync.id, date=date)
+                db.add(row)
+            row.impressions, row.clicks = vals["impressions"], vals["clicks"]
+            row.spend, row.conversions, row.revenue = round(vals["spend"], 2), vals["conversions"], round(vals["revenue"], 2)
+            written += 1
+        sync.external_status = f"Pulled Meta insights for {len(adsets)} ad set(s) across {written} day(s)."
+        db.commit()
+        return written
+
+
+class RoutingProvider(MetricsProvider):
+    """Meta syncs get real Meta data; every other channel keeps the mock."""
+
+    def __init__(self, mock: MetricsProvider, meta: MetricsProvider):
+        self.mock, self.meta = mock, meta
+
+    def _for(self, sync):
+        return self.meta if sync.channel == "meta_ads" else self.mock
+
+    def backfill(self, db, sync):
+        return self._for(sync).backfill(db, sync)
+
+    def pull_latest(self, db, sync):
+        return self._for(sync).pull_latest(db, sync)
 
 
 def get_metrics_provider() -> MetricsProvider:
-    mode = os.getenv("METRICS_MODE", "mock")
-    if mode == "meta":
-        return MetaInsightsProvider()
+    from .meta import is_live
+    if is_live():
+        return RoutingProvider(MockMetricsProvider(), MetaInsightsProvider())
     return MockMetricsProvider()
 
 

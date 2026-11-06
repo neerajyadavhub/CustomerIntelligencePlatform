@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Run another command instead of the server, e.g.:
+#   docker compose run --rm api python -m app.doctor
+if [ "$#" -gt 0 ]; then
+  exec "$@"
+fi
+
 # Demo mode: with no DATABASE_URL the app uses its own throwaway SQLite file,
 # so load the demo data on start and everything works out of the box.
 #

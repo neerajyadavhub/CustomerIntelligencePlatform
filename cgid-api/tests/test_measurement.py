@@ -93,9 +93,3 @@ def test_summarize_computes_rates_from_totals_not_averages_of_rates():
     assert summary["ctr"] == 0.03     # 300 / 10000, not the mean of 1% and 3.2%
     assert summary["cpa"] == 10.0     # 100 / 10
     assert summary["roas"] == 4.0     # 400 / 100
-
-
-def test_real_provider_stub_fails_loudly_instead_of_returning_fake_data(db):
-    provider = measurement_engine.MetaInsightsProvider()
-    with pytest.raises(NotImplementedError):
-        provider.backfill(db, sync=None)
