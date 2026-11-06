@@ -13,13 +13,14 @@ the project README), this same service also serves the frontend at "/" —
 one deploy, one URL. If static/ is absent, "/" just returns API info.
 """
 import os
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from . import models, schemas, decision_engine, audience_engine, measurement_engine
+from . import models, schemas, decision_engine, audience_engine, measurement_engine, ingest
+from .auth import install_auth
 from .clock import utcnow
 from .database import Base, engine, get_db
 from .identity_resolver import get_resolver
@@ -46,6 +47,8 @@ app = FastAPI(
     description="Identity resolution, decisioning, and audience activation for one unified Person ID.",
     version="0.1.0",
 )
+
+install_auth(app)  # registered before CORS so CORS headers wrap 401 responses
 
 app.add_middleware(
     CORSMiddleware,
@@ -271,3 +274,23 @@ def audience_performance(audience_id: str, db: Session = Depends(get_db)):
         by_channel=by_channel,
         **overall,
     )
+
+
+# ------------------------------------------------------------------ ingest
+@app.post("/ingest/records", response_model=schemas.IngestResult, tags=["ingest"])
+def ingest_json(req: schemas.IngestRequest, db: Session = Depends(get_db)):
+    """Load people, signals and model scores. Records are matched to existing
+    people on normalized email/phone/external_user_id; matches are merged."""
+    return ingest.ingest_records(db, [r.model_dump() for r in req.records], req.auto_merge)
+
+
+@app.post("/ingest/csv", response_model=schemas.IngestResult, tags=["ingest"])
+async def ingest_csv(request: Request, auto_merge: bool = True, db: Session = Depends(get_db)):
+    """Same as /ingest/records but takes a raw text/csv body. Columns:
+    external_user_id, email, phone, account_type, source; score:<model> for
+    model scores; every other column is a numeric signal."""
+    body = (await request.body()).decode("utf-8-sig")
+    records = ingest.parse_csv(body)
+    if not records:
+        raise HTTPException(status_code=400, detail="CSV body has no data rows.")
+    return ingest.ingest_records(db, records, auto_merge)

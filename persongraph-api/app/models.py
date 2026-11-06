@@ -12,6 +12,7 @@ PerformanceMetric — one day of channel performance for a ChannelSync,
                     populated by a MetricsProvider (measurement_engine.py)
 """
 import uuid
+from sqlalchemy import event
 from sqlalchemy import (
     Column, String, Float, Boolean, DateTime, ForeignKey, JSON, Integer, Text
 )
@@ -45,12 +46,23 @@ class Identity(Base):
     external_user_id = Column(String, nullable=True)
     email = Column(String, nullable=True)
     phone = Column(String, nullable=True)
+    # Normalized copies used for matching; filled automatically (see below).
+    email_norm = Column(String, nullable=True, index=True)
+    phone_norm = Column(String, nullable=True, index=True)
     account_type = Column(String, default="unknown")  # personal | business | anonymous
     match_confidence = Column(Float, default=1.0)
     source = Column(String, default="segment")
     last_synced = Column(DateTime, default=utcnow)
 
     person = relationship("Person", back_populates="identities")
+
+
+@event.listens_for(Identity, "before_insert")
+@event.listens_for(Identity, "before_update")
+def _fill_normalized(mapper, connection, target):
+    from .normalize import normalize_email, normalize_phone
+    target.email_norm = normalize_email(target.email)
+    target.phone_norm = normalize_phone(target.phone)
 
 
 class Signal(Base):

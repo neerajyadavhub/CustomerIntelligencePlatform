@@ -2,7 +2,7 @@
 
 **Open-source customer intelligence: one resolved Person ID powering a decision engine, a rep lookup tool, and audience activation with measurement.**
 
-> **Status: alpha.** Runs end to end and is tested, but has **no authentication or multi-tenancy** and ships with **mock** channel/identity providers. Great for evaluation, prototyping, and building on. Not yet safe to expose with real customer data. See [Limitations](#limitations).
+> **Status: alpha.** Runs end to end and is tested. You can load your own data and protect the API with a key, but there is **no multi-tenancy or user management** and channel providers are **mock**. Great for evaluation, prototyping, and building on. Not yet safe to expose with real customer data. See [Limitations](#limitations).
 
 Live demo: **https://neerajyadavhub.github.io/CustomerIntelligencePlatform/**
 
@@ -43,6 +43,23 @@ python -m app.seed
 uvicorn app.main:app --reload
 ```
 
+## Use it with your own data
+
+```bash
+# 1. Start it with an API key (data endpoints require it)
+export API_KEYS=$(openssl rand -hex 32)
+docker compose up --build        # or run uvicorn; remove the demo SEED_* lines for real data
+
+# 2. Load people. Matching is on normalized email / phone / external_user_id;
+#    records that share an identifier are merged into one Person ID.
+curl -X POST localhost:8000/ingest/csv -H "Authorization: Bearer $API_KEYS" \
+  -H "Content-Type: text/csv" --data-binary @customers.csv
+```
+
+CSV columns: `external_user_id, email, phone, account_type, source`; `score:<model>` columns become model scores; every other column is a numeric signal. JSON is available at `POST /ingest/records`. Then build audiences over those signals/scores via `/audience`. Interactive docs at `/docs`.
+
+Matching is exact on normalized identifiers (no fuzzy/probabilistic matching), so a shared household phone will link people - pass `auto_merge=false` to report conflicts instead.
+
 ## Configuration
 
 | Variable | Default | Purpose |
@@ -52,6 +69,7 @@ uvicorn app.main:app --reload
 | `METRICS_MODE` | `mock` | `mock` or `meta` (stub) |
 | `CORS_ORIGINS` | `*` | Comma-separated allowed origins |
 | `SEED_DEMO_DATA` / `SEED_ALLOW_RESET` | unset | Demo seeding. **Wipes the database.** Never use on real data |
+| `API_KEYS` | unset (open) | Comma-separated API keys; set this for any real deployment |
 | `PORT` | `8000` | Container listen port |
 
 See [`persongraph-api/.env.example`](persongraph-api/.env.example).
@@ -64,7 +82,7 @@ See [`persongraph-api/.env.example`](persongraph-api/.env.example).
 
 ## Limitations
 
-- No authentication, authorization, or multi-tenancy.
+- Authentication is a shared API key only (`API_KEYS`): no users, roles, or multi-tenancy. The bundled demo UI doesn't send a key, so it stops working when `API_KEYS` is set.
 - Channel sync and performance data are mocked; Meta/Segment adapters are stubs.
 - Audience rules are ANDed numeric conditions only.
 - Docker image is built and smoke-tested in CI; it was not built locally by the author.

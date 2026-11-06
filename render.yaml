@@ -1,0 +1,24 @@
+# One-click deploy to Render: https://render.com/deploy?repo=https://github.com/neerajyadavhub/CustomerIntelligencePlatform
+# Creates a free Postgres database and the API. A secret API key is generated
+# for you (see the service's Environment tab). No demo data is loaded.
+services:
+  - type: web
+    name: persongraph-api
+    runtime: docker
+    dockerContext: ./persongraph-api
+    dockerfilePath: ./persongraph-api/Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: persongraph-db
+          property: connectionString
+      - key: API_KEYS
+        generateValue: true
+      - key: RESOLVER_MODE
+        value: mock
+      - key: METRICS_MODE
+        value: mock
+databases:
+  - name: persongraph-db
+    plan: free

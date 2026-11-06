@@ -57,15 +57,19 @@ class MockResolver(IdentityResolver):
     real Segment credentials."""
 
     def resolve(self, db: Session, identifier: str):
-        identity = (
-            db.query(models.Identity)
-            .filter(
-                (models.Identity.email == identifier)
-                | (models.Identity.phone == identifier)
-                | (models.Identity.external_user_id == identifier)
-            )
-            .first()
-        )
+        from .normalize import normalize_email, normalize_phone
+        conditions = [
+            models.Identity.email == identifier,
+            models.Identity.phone == identifier,
+            models.Identity.external_user_id == identifier,
+        ]
+        email_n, phone_n = normalize_email(identifier), normalize_phone(identifier)
+        if email_n:
+            conditions.append(models.Identity.email_norm == email_n)
+        if phone_n:
+            conditions.append(models.Identity.phone_norm == phone_n)
+        from sqlalchemy import or_
+        identity = db.query(models.Identity).filter(or_(*conditions)).first()
         if not identity:
             return None
         return db.query(models.Person).filter(models.Person.person_id == identity.person_id).first()

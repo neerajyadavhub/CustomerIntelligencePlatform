@@ -150,3 +150,32 @@ class AudiencePerformanceSummary(BaseModel):
     roas: float
     by_channel: List[ChannelBreakdown]
     timeseries: List[PerformancePoint]
+
+
+# ------------------------------------------------------------------ ingest
+class IngestRecord(BaseModel):
+    external_user_id: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    account_type: Optional[str] = None
+    source: Optional[str] = None
+    signals: dict = {}
+    scores: dict = {}
+
+
+class IngestRequest(BaseModel):
+    records: list[IngestRecord]
+    auto_merge: bool = True
+
+
+class IngestError(BaseModel):
+    index: int
+    error: str
+
+
+class IngestResult(BaseModel):
+    received: int
+    created: int
+    updated: int
+    merged: int
+    errors: list[IngestError]
