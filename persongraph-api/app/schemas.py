@@ -1,9 +1,17 @@
 import datetime as dt
-from typing import List, Optional, Any
-from pydantic import BaseModel
+from typing import List, Literal, Optional
+from pydantic import BaseModel, ConfigDict
+
+# Read ORM objects directly. protected_namespaces is cleared on the models
+# that have `model_name` / `model_version` fields, which Pydantic would
+# otherwise warn about because of its reserved `model_` prefix.
+ORM = ConfigDict(from_attributes=True)
+ORM_WITH_MODEL_FIELDS = ConfigDict(from_attributes=True, protected_namespaces=())
 
 
 class IdentityOut(BaseModel):
+    model_config = ORM
+
     external_user_id: Optional[str]
     email: Optional[str]
     phone: Optional[str]
@@ -11,9 +19,6 @@ class IdentityOut(BaseModel):
     match_confidence: float
     source: str
     last_synced: dt.datetime
-
-    class Config:
-        from_attributes = True
 
 
 class IdentityLookupResponse(BaseModel):
@@ -25,25 +30,25 @@ class IdentityLookupResponse(BaseModel):
 
 
 class SignalOut(BaseModel):
+    model_config = ORM
+
     name: str
     value: float
     updated_at: dt.datetime
 
-    class Config:
-        from_attributes = True
-
 
 class ModelScoreOut(BaseModel):
+    model_config = ORM_WITH_MODEL_FIELDS
+
     model_name: str
     model_version: str
     score: float
     scored_at: dt.datetime
 
-    class Config:
-        from_attributes = True
-
 
 class DecisionOut(BaseModel):
+    model_config = ORM_WITH_MODEL_FIELDS
+
     action: str
     result: str
     reason: str
@@ -52,9 +57,6 @@ class DecisionOut(BaseModel):
     model_version: Optional[str]
     conflict_detected: bool
     created_at: dt.datetime
-
-    class Config:
-        from_attributes = True
 
 
 class PersonProfile(BaseModel):
@@ -72,8 +74,10 @@ class DecisionEvaluateRequest(BaseModel):
 
 class AudienceRule(BaseModel):
     field: str
-    op: str   # one of: > < >= <= = !=
-    value: Any
+    # Validated here so a bad rule is rejected with a 422 when the audience is
+    # created, instead of crashing later when it is previewed or synced.
+    op: Literal[">", "<", ">=", "<=", "=", "!="]
+    value: float
 
 
 class AudienceCreate(BaseModel):
@@ -82,13 +86,12 @@ class AudienceCreate(BaseModel):
 
 
 class AudienceOut(BaseModel):
+    model_config = ORM
+
     id: str
     name: str
     rule: List[AudienceRule]
     created_at: dt.datetime
-
-    class Config:
-        from_attributes = True
 
 
 class AudiencePreview(BaseModel):
@@ -102,14 +105,13 @@ class ChannelSyncRequest(BaseModel):
 
 
 class ChannelSyncOut(BaseModel):
+    model_config = ORM
+
     channel: str
     status: str
     matched_count: int
     total_count: int
     synced_at: dt.datetime
-
-    class Config:
-        from_attributes = True
 
 
 class PerformancePoint(BaseModel):

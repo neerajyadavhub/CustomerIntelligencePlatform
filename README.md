@@ -1,35 +1,89 @@
-# Smart Engine
+# Smart Engine (PersonGraph)
 
-An interactive prototype of a unified customer-intelligence platform:
-one resolved **Person ID** feeding three products —
+**Open-source customer intelligence: one resolved Person ID powering a decision engine, a rep lookup tool, and audience activation with measurement.**
 
-- **CDP** — identity resolution + a rules-based decision engine (e.g.
-  reactivation-offer eligibility), with a live "Decision Ledger."
-- **Rep App** — a sales/concierge lookup tool: search a customer, get
-  one unified profile even if they've shopped under more than one
-  account, with a suggested talking point.
-- **Marketing Intelligence** — build an audience from signals/scores,
-  preview its size, sync it to a channel, and measure how it performed
-  after — impressions, spend, conversions, ROAS, by channel and over time.
+> **Status: alpha.** Runs end to end and is tested, but has **no authentication or multi-tenancy** and ships with **mock** channel/identity providers. Great for evaluation, prototyping, and building on. Not yet safe to expose with real customer data. See [Limitations](#limitations).
 
 Live demo: **https://neerajyadavhub.github.io/CustomerIntelligencePlatform/**
 
-Backed by a real, tested FastAPI backend — [`persongraph-api/`](persongraph-api/)
-— not just a UI mockup. The frontend works standalone with realistic
-static demo data, and upgrades to live API calls automatically when the
-backend is reachable (look for the connection indicator in the sidebar).
+## What it does
+
+- **CDP / decision engine** - identity resolution plus an inspectable rules engine (e.g. reactivation-offer eligibility), every decision logged with its reasoning.
+- **Rep App** - search any identifier, get one unified profile across accounts, with a suggested talking point.
+- **Marketing Intelligence** - build an audience from signals/scores, preview size, sync to a channel, then **measure** it: impressions, spend, conversions, ROAS by channel and over time.
+
+All three share one Person ID layer, served by a FastAPI backend ([`persongraph-api/`](persongraph-api/)).
+
+```mermaid
+flowchart LR
+  UI[Web UI: CDP / Rep / Marketing] --> API[PersonGraph API<br/>FastAPI]
+  API --> ID[IdentityResolver<br/>mock | segment]
+  API --> DE[Decision engine<br/>ACTION_RULES]
+  API --> AE[Audience engine]
+  API --> ME[MetricsProvider<br/>mock | meta]
+  API --> DB[(SQLite / Postgres)]
+```
+
+## Quickstart (one command)
+
+```bash
+git clone https://github.com/neerajyadavhub/CustomerIntelligencePlatform.git
+cd CustomerIntelligencePlatform
+docker compose up --build
+```
+
+Open http://localhost:8000 (UI) or http://localhost:8000/docs (API). This starts Postgres with **throwaway demo data**.
+
+Without Docker:
+
+```bash
+cd persongraph-api
+pip install -r requirements.txt
+python -m app.seed
+uvicorn app.main:app --reload
+```
+
+## Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DATABASE_URL` | local SQLite | Postgres URL for real deployments |
+| `RESOLVER_MODE` | `mock` | `mock` or `segment` (stub) |
+| `METRICS_MODE` | `mock` | `mock` or `meta` (stub) |
+| `CORS_ORIGINS` | `*` | Comma-separated allowed origins |
+| `SEED_DEMO_DATA` / `SEED_ALLOW_RESET` | unset | Demo seeding. **Wipes the database.** Never use on real data |
+| `PORT` | `8000` | Container listen port |
+
+See [`persongraph-api/.env.example`](persongraph-api/.env.example).
+
+## Extending it
+
+- **Real channel metrics**: implement `MetricsProvider` in `app/measurement_engine.py` (Meta/Google/TikTok).
+- **Real identity source**: implement `IdentityResolver` in `app/identity_resolver.py`.
+- **New decisions**: add an entry to `ACTION_RULES` in `app/decision_engine.py`.
+
+## Limitations
+
+- No authentication, authorization, or multi-tenancy.
+- Channel sync and performance data are mocked; Meta/Segment adapters are stubs.
+- Audience rules are ANDed numeric conditions only.
+- Docker image is built and smoke-tested in CI; it was not built locally by the author.
+
+## Contributing & community
+
+[CONTRIBUTING](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md). Licensed under [Apache-2.0](LICENSE).
 
 ## Repo layout
 
 ```
-CustomerIntelligencePlatform/
-  frontend/index.html    The three-app prototype (what GitHub Pages serves)
-  prd.html                Styled product requirements doc, linked from the demo
-  persongraph-api/        FastAPI backend — identity, decisioning, audiences
-    README.md              Backend-specific docs (endpoints, deploy, config)
+index.html, prd.html     Web UI and PRD (served by GitHub Pages)
+persongraph-api/         FastAPI backend, tests, Dockerfile
+  static/                Copies of the UI so the API can serve it (kept in sync by CI)
+docker-compose.yml       API + Postgres
+.github/workflows/ci.yml Tests, Postgres, Docker smoke test
 ```
 
-## Maintaining the live link
+## Hosting the demo on GitHub Pages
 
 `https://neerajyadavhub.github.io/CustomerIntelligencePlatform/` is a
 **GitHub Pages** site — it only serves static files (HTML/CSS/JS). It
@@ -43,8 +97,8 @@ in Settings → Pages. There's nothing to redo in Settings for routine
 changes — just:
 
 ```bash
-# edit frontend/index.html (or prd.html) locally, then:
-git add frontend/index.html
+# edit index.html (or prd.html) locally, then:
+git add index.html
 git commit -m "Update demo"
 git push
 ```
@@ -72,11 +126,11 @@ The frontend resolves which API to call in this order:
 1. A `?api=https://your-backend-url` query parameter, if present (handy
    for testing a specific deployment without changing code).
 2. `http://127.0.0.1:8000` automatically, when running on localhost.
-3. Otherwise, a hardcoded default baked into `frontend/index.html`
+3. Otherwise, a hardcoded default baked into `index.html`
    (currently a placeholder: `https://your-persongraph-api.onrender.com`).
 
 Once you've deployed the backend and have its real URL, open
-`frontend/index.html`, find the line:
+`index.html`, find the line:
 
 ```js
 const DEFAULT_PROD_API = 'https://your-persongraph-api.onrender.com';
@@ -100,44 +154,14 @@ alternative to the two-host setup above, not a requirement; the existing
 doesn't care where the backend lives as long as `DEFAULT_PROD_API` points
 to it.
 
-## Running everything locally
+## Running tests
 
 ```bash
-# backend
 cd persongraph-api
-pip install -r requirements.txt
-python -m app.seed
-uvicorn app.main:app --reload
-
-# frontend — open directly, or serve it:
-cd ../frontend
-python -m http.server 5500
-# then visit http://127.0.0.1:5500/?api=http://127.0.0.1:8000
+pip install -r requirements-dev.txt
+pytest
 ```
 
-Locally, the frontend defaults to `http://127.0.0.1:8000` automatically,
-so the `?api=` param above is optional unless you're running the backend
-on a different port.
+## Provenance
 
-## What to try in the demo
-
-- **CDP** — open a person's profile, click "Load live identity" to pull
-  real resolved identities from the backend, and run the reactivation
-  decision to see the eligible/suppressed logic and its reasoning.
-- **Rep App** — search for `jordyn` (or her email/phone) and open her
-  unified profile — note the three linked identities.
-- **Marketing** — build an audience (e.g. propensity > 0.7), run it
-  live, and sync it to a channel to see the match-rate behavior. Then
-  open **Measurement** and click "Load from live API" to see that same
-  audience's post-sync performance — impressions, spend, conversions,
-  ROAS, broken out by channel and over time.
-
-## Status & provenance
-
-This is a portfolio/reference project: no auth, no multi-tenancy, no
-real channel integrations (see `persongraph-api/README.md` for the full
-"what this is not" list). The identity-resolution and decisioning
-patterns are modeled on real industry practice, generalized and
-rewritten for this project — not copied from any employer's proprietary
-system. See [`CASE-STUDY.md`](CASE-STUDY.md) for the problem/approach/
-outcome write-up.
+Identity-resolution and decisioning patterns are modeled on general industry practice, generalized and rewritten for this project, not copied from any employer's proprietary system. See [`CASE-STUDY.md`](CASE-STUDY.md).

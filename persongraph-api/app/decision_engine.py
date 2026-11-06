@@ -6,9 +6,9 @@ v1 is deliberately a small, readable rules table rather than a generic
 rules-engine framework. Add new actions by adding a new function and
 registering it in ACTION_RULES.
 """
-import datetime as dt
 from sqlalchemy.orm import Session
 from . import models
+from .clock import utcnow
 
 
 def _get_signal(db: Session, person_id: str, name: str, default: float = 0.0) -> float:
@@ -62,7 +62,7 @@ def evaluate_reactivation_offer(db: Session, person: models.Person) -> models.De
         model_name=score_row.model_name if score_row else None,
         model_version=score_row.model_version if score_row else None,
         conflict_detected=conflict,
-        created_at=dt.datetime.utcnow(),
+        created_at=utcnow(),
     )
     db.add(decision)
     db.commit()

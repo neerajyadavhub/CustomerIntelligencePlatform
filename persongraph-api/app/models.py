@@ -12,11 +12,11 @@ PerformanceMetric — one day of channel performance for a ChannelSync,
                     populated by a MetricsProvider (measurement_engine.py)
 """
 import uuid
-import datetime as dt
 from sqlalchemy import (
     Column, String, Float, Boolean, DateTime, ForeignKey, JSON, Integer, Text
 )
 from sqlalchemy.orm import relationship
+from .clock import utcnow
 from .database import Base
 
 
@@ -27,7 +27,7 @@ def _uid(prefix: str) -> str:
 class Person(Base):
     __tablename__ = "persons"
     person_id = Column(String, primary_key=True, default=lambda: _uid("PER"))
-    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     identities = relationship("Identity", back_populates="person", cascade="all, delete-orphan")
     signals = relationship("Signal", back_populates="person", cascade="all, delete-orphan")
@@ -48,7 +48,7 @@ class Identity(Base):
     account_type = Column(String, default="unknown")  # personal | business | anonymous
     match_confidence = Column(Float, default=1.0)
     source = Column(String, default="segment")
-    last_synced = Column(DateTime, default=dt.datetime.utcnow)
+    last_synced = Column(DateTime, default=utcnow)
 
     person = relationship("Person", back_populates="identities")
 
@@ -59,7 +59,7 @@ class Signal(Base):
     person_id = Column(String, ForeignKey("persons.person_id"), nullable=False)
     name = Column(String, nullable=False)   # e.g. "days_since_last_activity"
     value = Column(Float, nullable=False)
-    updated_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(DateTime, default=utcnow)
 
     person = relationship("Person", back_populates="signals")
 
@@ -71,7 +71,7 @@ class ModelScore(Base):
     model_name = Column(String, nullable=False)     # e.g. "propensity_to_convert"
     model_version = Column(String, default="v1")
     score = Column(Float, nullable=False)
-    scored_at = Column(DateTime, default=dt.datetime.utcnow)
+    scored_at = Column(DateTime, default=utcnow)
 
     person = relationship("Person", back_populates="scores")
 
@@ -89,7 +89,7 @@ class Decision(Base):
     model_name = Column(String, nullable=True)
     model_version = Column(String, nullable=True)
     conflict_detected = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     person = relationship("Person", back_populates="decisions")
 
@@ -104,7 +104,7 @@ class Audience(Base):
     id = Column(String, primary_key=True, default=lambda: _uid("AUD"))
     name = Column(String, nullable=False)
     rule = Column(JSON, nullable=False)
-    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     syncs = relationship("ChannelSync", back_populates="audience", cascade="all, delete-orphan")
 
@@ -117,7 +117,7 @@ class ChannelSync(Base):
     status = Column(String, default="pending")         # pending | synced | failed
     matched_count = Column(Integer, default=0)
     total_count = Column(Integer, default=0)
-    synced_at = Column(DateTime, default=dt.datetime.utcnow)
+    synced_at = Column(DateTime, default=utcnow)
 
     audience = relationship("Audience", back_populates="syncs")
     metrics = relationship("PerformanceMetric", back_populates="sync", cascade="all, delete-orphan")

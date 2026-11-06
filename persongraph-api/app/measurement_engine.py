@@ -41,6 +41,7 @@ import datetime as dt
 from abc import ABC, abstractmethod
 from sqlalchemy.orm import Session
 from . import models
+from .clock import utcnow
 
 HISTORY_DAYS = 14
 
@@ -78,7 +79,7 @@ class MockMetricsProvider(MetricsProvider):
         rng = random.Random(sync.id * 97 + 13)  # deterministic per sync
         written = 0
         for day_offset in range(HISTORY_DAYS, 0, -1):
-            date = dt.datetime.utcnow() - dt.timedelta(days=day_offset)
+            date = utcnow() - dt.timedelta(days=day_offset)
             ramp = min(1.0, (HISTORY_DAYS - day_offset + 1) / 4)
             noise = rng.uniform(0.85, 1.15)
             impressions = max(1, int(base_reach * rng.uniform(2.5, 4.0) * ramp * noise))

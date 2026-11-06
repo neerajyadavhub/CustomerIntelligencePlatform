@@ -1,0 +1,41 @@
+# One command to run the API against a real Postgres:
+#
+#   docker compose up --build
+#
+# Then open http://localhost:8000 (the demo UI) or http://localhost:8000/docs
+# (the API). The bundled Postgres is a throwaway demo database: demo data is
+# loaded into it on start. For anything real, point DATABASE_URL at your own
+# database and remove the two SEED_* lines.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: persongraph
+      POSTGRES_PASSWORD: persongraph
+      POSTGRES_DB: persongraph
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U persongraph -d persongraph"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./persongraph-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://persongraph:persongraph@db:5432/persongraph
+      RESOLVER_MODE: mock
+      METRICS_MODE: mock
+      # Demo only. Wipes and reseeds the database above on every start.
+      SEED_DEMO_DATA: "true"
+      SEED_ALLOW_RESET: "true"
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:

@@ -2,12 +2,24 @@
 Seeds the database with demo data so you can hit every endpoint
 immediately after a fresh install. Run with: python -m app.seed
 """
-import datetime as dt
+import os
+
+from .clock import utcnow
 from .database import Base, engine, SessionLocal
 from . import models
 
 
 def run():
+    # This script deletes every row before reseeding. That is fine for the
+    # bundled SQLite demo database, but it must never run by accident against
+    # a real Postgres that holds someone's data.
+    if engine.dialect.name != "sqlite" and os.getenv("SEED_ALLOW_RESET") != "true":
+        raise SystemExit(
+            "Refusing to seed: this script deletes every row in the target "
+            f"database, and DATABASE_URL points at {engine.dialect.name}, not SQLite. "
+            "Set SEED_ALLOW_RESET=true if you really want to wipe and reseed it."
+        )
+
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
@@ -66,7 +78,7 @@ def run():
                 account_type=ident["account_type"],
                 match_confidence=ident["match_confidence"],
                 source="segment",
-                last_synced=dt.datetime.utcnow(),
+                last_synced=utcnow(),
             ))
 
         for name, value in p["signals"].items():
@@ -99,7 +111,7 @@ def run():
             status="synced",
             matched_count=int(len(matched) * rate),
             total_count=len(matched),
-            synced_at=dt.datetime.utcnow(),
+            synced_at=utcnow(),
         )
         db.add(sync)
         db.flush()

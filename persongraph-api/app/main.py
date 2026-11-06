@@ -13,7 +13,6 @@ the project README), this same service also serves the frontend at "/" —
 one deploy, one URL. If static/ is absent, "/" just returns API info.
 """
 import os
-import datetime as dt
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -21,11 +20,26 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from . import models, schemas, decision_engine, audience_engine, measurement_engine
+from .clock import utcnow
 from .database import Base, engine, get_db
 from .identity_resolver import get_resolver
 from .measurement_engine import get_metrics_provider
 
 Base.metadata.create_all(bind=engine)
+
+
+def cors_origins_from_env() -> list:
+    """Browser origins allowed to call this API.
+
+    Defaults to "*" so the demo works from any page (for example the
+    GitHub Pages frontend). For a real deployment set CORS_ORIGINS to a
+    comma-separated allowlist, e.g.
+    CORS_ORIGINS="https://app.example.com,https://admin.example.com"."""
+    raw = os.getenv("CORS_ORIGINS", "").strip()
+    if not raw:
+        return ["*"]
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
 
 app = FastAPI(
     title="PersonGraph API",
@@ -35,7 +49,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten before production — see README
+    allow_origins=cors_origins_from_env(),  # "*" by default; set CORS_ORIGINS in production
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -95,7 +109,7 @@ def identity_lookup(identifier: str, db: Session = Depends(get_db)):
         identities=person.identities,
         match_confidence=overall_confidence,
         source="segment",
-        last_updated=max([i.last_synced for i in person.identities], default=dt.datetime.utcnow()),
+        last_updated=max([i.last_synced for i in person.identities], default=utcnow()),
     )
 
 
@@ -147,7 +161,7 @@ def get_decisions(person_id: str, db: Session = Depends(get_db)):
 # --------------------------------------------------------------- audience
 @app.post("/audience", response_model=schemas.AudienceOut, tags=["audience"])
 def create_audience(req: schemas.AudienceCreate, db: Session = Depends(get_db)):
-    audience = models.Audience(name=req.name, rule=[r.dict() for r in req.rule])
+    audience = models.Audience(name=req.name, rule=[r.model_dump() for r in req.rule])
     db.add(audience)
     db.commit()
     db.refresh(audience)
@@ -184,7 +198,7 @@ def sync_audience(audience_id: str, req: schemas.ChannelSyncRequest, db: Session
         status="synced" if matched else "failed",
         matched_count=matched_count,
         total_count=len(matched),
-        synced_at=dt.datetime.utcnow(),
+        synced_at=utcnow(),
     )
     db.add(sync)
     db.commit()
@@ -194,7 +208,10 @@ def sync_audience(audience_id: str, req: schemas.ChannelSyncRequest, db: Session
     # backfills a realistic 14-day curve immediately; a real provider
     # would instead record the external campaign id here and let a
     # scheduled pull_latest() populate it over time.
-    metrics_provider.backfill(db, sync)
+    # A sync that matched nobody is recorded as failed and has nothing to
+    # measure, so it must not get performance data.
+    if sync.status == "synced":
+        metrics_provider.backfill(db, sync)
 
     return sync
 
@@ -214,7 +231,11 @@ def audience_performance(audience_id: str, db: Session = Depends(get_db)):
     if not audience:
         raise HTTPException(status_code=404, detail="Audience not found.")
 
-    syncs = db.query(models.ChannelSync).filter(models.ChannelSync.audience_id == audience_id).all()
+    syncs = (
+        db.query(models.ChannelSync)
+        .filter(models.ChannelSync.audience_id == audience_id, models.ChannelSync.status == "synced")
+        .all()
+    )
     all_metrics = []
     timeseries = []
     by_channel_metrics = {}

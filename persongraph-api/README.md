@@ -76,6 +76,18 @@ persongraph-api/
   .env.example
 ```
 
+## Tests, Docker and config
+
+```bash
+pip install -r requirements-dev.txt && pytest      # isolated temp SQLite
+TEST_DATABASE_URL=postgresql://... pytest          # optional: run on Postgres
+docker compose up --build                          # from repo root: API + Postgres
+```
+
+Environment variables (`CORS_ORIGINS`, `SEED_DEMO_DATA`, `SEED_ALLOW_RESET`,
+`PORT`, ...) are documented in `.env.example`. Seeding wipes the database and
+refuses to run against non-SQLite unless `SEED_ALLOW_RESET=true`.
+
 ## Endpoints
 
 | Method | Path | Purpose |
